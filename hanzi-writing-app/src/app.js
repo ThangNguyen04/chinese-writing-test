@@ -210,9 +210,11 @@ function clearAllCanvases() {
   });
 }
 
-// Dịch Tiếng Việt sang chữ Hán bằng Gemini API
+// Dịch Tiếng Việt sang chữ Hán bằng Gemini API (Có fallback model & báo lỗi chi tiết)
 async function translateVietnameseWithAI(viText) {
-  const apiKey = localStorage.getItem("gemini_api_key") || import.meta.env?.VITE_GEMINI_API_KEY;
+  const rawKey = localStorage.getItem("gemini_api_key") || import.meta.env?.VITE_GEMINI_API_KEY || "";
+  const apiKey = rawKey.trim();
+
   if (!apiKey) {
     alert("Vui lòng bấm nút '⚙️ Cấu hình' ở góc trên bên phải để nhập Gemini API Key trước khi dùng tính năng dịch AI!");
     document.getElementById("settings-modal").classList.remove("hidden");
@@ -223,45 +225,73 @@ async function translateVietnameseWithAI(viText) {
   const statusEl = document.getElementById("ai-status");
   statusEl.classList.remove("hidden");
 
+  // Danh sách model tự động fallback nếu model đầu không khả dụng với API Key của bạn
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastErrorMsg = "";
+
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Người dùng muốn học viết từ tiếng Trung tương ứng với nghĩa tiếng Việt: "${viText}". 
-Hãy trả về đúng định dạng JSON (không markdown) gồm:
-{"chars": "chữ Hán giản thể (từ 1 đến 4 chữ)", "pinyin": "phiên âm pinyin cách nhau bởi khoảng trắng", "meaning": "nghĩa tiếng Việt ngắn gọn"}`
-            }]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json"
-          }
-        })
+    for (const modelName of models) {
+      const response = await fetch(
+        `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Người dùng muốn học viết từ tiếng Trung tương ứng với nghĩa tiếng Việt: "${viText}". 
+Hãy trả về đúng định dạng JSON nguyên bản (không dùng markdown code block) gồm:
+{"chars": "chữ Hán giản thể (từ 1 đến 4 chữ)", "pinyin": "phiên âm pinyin có dấu thanh điệu cách nhau bởi khoảng trắng", "meaning": "nghĩa tiếng Việt ngắn gọn"}`
+              }]
+            }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              temperature: 0.2
+            }
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      // Nếu Google trả về lỗi (400, 403, 404, 429...), lưu lại thông báo lỗi thực tế
+      if (!response.ok || data.error) {
+        lastErrorMsg = `[${modelName}] ${data?.error?.status || response.status}: ${data?.error?.message || "Lỗi không xác định"}`;
+        console.warn("Thử model tiếp theo do lỗi:", lastErrorMsg);
+        // Nếu lỗi do API key không hợp lệ (API_KEY_INVALID) thì dừng luôn không cần thử model khác
+        if (lastErrorMsg.includes("API_KEY_INVALID") || response.status === 400 || response.status === 403) {
+          break;
+        }
+        continue;
       }
-    );
 
-    const data = await response.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) throw new Error("Không nhận được phản hồi hợp lệ từ Gemini.");
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        lastErrorMsg = "Phản hồi bị trống hoặc bị bộ lọc an toàn chặn.";
+        continue;
+      }
 
-    const result = JSON.parse(rawText);
-    if (result.chars) {
-      words.unshift({
-        chars: result.chars.trim(),
-        pinyin: result.pinyin.trim(),
-        meaning: result.meaning.trim()
-      });
-      saveWordList();
-      renderWordList();
-      selectWord(0);
-      document.getElementById("vi-search-input").value = "";
+      // Làm sạch trường hợp AI bọc kết quả trong ```json ... ```
+      const cleanedJson = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const result = JSON.parse(cleanedJson);
+
+      if (result && result.chars) {
+        words.unshift({
+          chars: result.chars.trim(),
+          pinyin: (result.pinyin || "").trim(),
+          meaning: (result.meaning || viText).trim()
+        });
+        saveWordList();
+        renderWordList();
+        selectWord(0);
+        document.getElementById("vi-search-input").value = "";
+        return; // Thành công -> Thoát hàm
+      }
     }
+
+    throw new Error(lastErrorMsg || "Không nhận được phản hồi hợp lệ từ Gemini.");
   } catch (err) {
-    alert("Lỗi gọi Gemini AI: " + err.message);
+    alert("Lỗi gọi Gemini AI:\n" + err.message);
   } finally {
     statusEl.classList.add("hidden");
   }
