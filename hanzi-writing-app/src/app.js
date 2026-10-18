@@ -226,7 +226,7 @@ async function translateVietnameseWithAI(viText) {
   statusEl.classList.remove("hidden");
 
   // Thử lần lượt các model phổ biến nhất
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
+  const models = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-flash-latest"];
   const errorLogs = [];
 
   try {
