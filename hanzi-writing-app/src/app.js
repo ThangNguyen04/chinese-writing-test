@@ -226,25 +226,24 @@ async function translateVietnameseWithAI(viText) {
   statusEl.textContent = "⚡ Đang dịch siêu tốc...";
   statusEl.classList.remove("hidden");
 
-  // Sử dụng 1 model duy nhất theo khuyến nghị của Google để tránh lỗi NOT_FOUND
   const modelName = "gemini-3.8-flash"; 
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
             parts: [{
-              // Câu lệnh (prompt) cực ngắn để AI xử lý nhanh nhất có thể
-              text: `Dịch "${viText}" sang tiếng Trung giản thể. Trả về JSON: {"chars":"chữ Hán","pinyin":"phiên âm","meaning":"nghĩa"}`
+              // Ép model trả về JSON trơn, không dùng markdown
+              text: `Dịch "${viText}" sang tiếng Trung giản thể. Chỉ trả về JSON trơn, không giải thích: {"chars":"chữ Hán","pinyin":"phiên âm","meaning":"nghĩa"}`
             }]
           }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 60 // Khóa số lượng chữ trả về để ép tốc độ phản hồi tính bằng mili-giây
+            maxOutputTokens: 200 // Tăng lên 200 để JSON không bị cắt đứt giữa chừng
           }
         })
       }
@@ -258,8 +257,13 @@ async function translateVietnameseWithAI(viText) {
       throw new Error(`[${modelName}] ${errCode}: ${errMsg}`);
     }
 
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/); // Bóc tách JSON chính xác bỏ qua các ký tự thừa
+    let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    // Xóa sạch dấu vết markdown code block (nếu AI vẫn cố tình chèn vào)
+    rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+    
+    // Bóc tách đúng phần {...}
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/); 
     
     if (!jsonMatch) {
       throw new Error("Phản hồi không chứa JSON hợp lệ: " + rawText.slice(0, 50));
