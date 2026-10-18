@@ -1,0 +1,16 @@
+{
+  "name": "Học Viết Chữ Hán - Hanzi App",
+  "short_name": "HanziApp",
+  "description": "Ứng dụng luyện viết tiếng Trung tương tác hỗ trợ Apple Pencil & Xuất PDF",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3898/3898082.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
