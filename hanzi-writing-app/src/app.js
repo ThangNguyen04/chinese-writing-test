@@ -230,26 +230,35 @@ async function translateVietnameseWithAI(viText) {
 
   try {
     const response = await fetch(
-      `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
             parts: [{
-              // Ép model trả về JSON trơn, không dùng markdown
               text: `Dịch "${viText}" sang tiếng Trung giản thể. Chỉ trả về JSON trơn, không giải thích: {"chars":"chữ Hán","pinyin":"phiên âm","meaning":"nghĩa"}`
             }]
           }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 200 // Tăng lên 200 để JSON không bị cắt đứt giữa chừng
+            maxOutputTokens: 200 
           }
         })
       }
     );
 
-    const data = await response.json();
+    // BƯỚC SỬA LỖI: Đọc dữ liệu dưới dạng Text trước thay vì gọi response.json() ngay lập tức
+    const rawResponseText = await response.text();
+    
+    let data;
+    try {
+      // Ép kiểu sang JSON an toàn
+      data = JSON.parse(rawResponseText);
+    } catch (parseError) {
+      // Nếu lỗi "Unexpected end of JSON" xảy ra, nó sẽ bị bắt ở đây và in ra nội dung thực sự bị lỗi
+      throw new Error(`API trả về nội dung không phải JSON (có thể do lỗi mạng/CORS). Nội dung trả về: ${rawResponseText.slice(0, 100)}`);
+    }
 
     if (!response.ok || data.error) {
       const errCode = data?.error?.status || response.status;
@@ -258,11 +267,8 @@ async function translateVietnameseWithAI(viText) {
     }
 
     let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
-    // Xóa sạch dấu vết markdown code block (nếu AI vẫn cố tình chèn vào)
     rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
     
-    // Bóc tách đúng phần {...}
     const jsonMatch = rawText.match(/\{[\s\S]*\}/); 
     
     if (!jsonMatch) {
