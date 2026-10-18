@@ -213,10 +213,10 @@ function clearAllCanvases() {
 // Dịch Tiếng Việt sang chữ Hán bằng Gemini API (Có fallback model & báo lỗi chi tiết)
 async function translateVietnameseWithAI(viText) {
   const rawKey = localStorage.getItem("gemini_api_key") || import.meta.env?.VITE_GEMINI_API_KEY || "";
-  const apiKey = rawKey.trim();
+  const apiKey = rawKey.trim().replace(/^["']|["']$/g, ""); // Xóa khoảng trắng & dấu ngoặc kép thừa nếu có
 
   if (!apiKey) {
-    alert("Vui lòng bấm nút '⚙️ Cấu hình' ở góc trên bên phải để nhập Gemini API Key trước khi dùng tính năng dịch AI!");
+    alert("Vui lòng bấm nút '⚙️ Cấu hình' ở góc trên bên phải để nhập Gemini API Key!");
     document.getElementById("settings-modal").classList.remove("hidden");
     document.getElementById("settings-modal").classList.add("flex");
     return;
@@ -225,71 +225,69 @@ async function translateVietnameseWithAI(viText) {
   const statusEl = document.getElementById("ai-status");
   statusEl.classList.remove("hidden");
 
-  // Danh sách model tự động fallback nếu model đầu không khả dụng với API Key của bạn
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
-  let lastErrorMsg = "";
+  // Thử lần lượt các model phổ biến nhất
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"];
+  const errorLogs = [];
 
   try {
     for (const modelName of models) {
-      const response = await fetch(
-        `[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Người dùng muốn học viết từ tiếng Trung tương ứng với nghĩa tiếng Việt: "${viText}". 
-Hãy trả về đúng định dạng JSON nguyên bản (không dùng markdown code block) gồm:
-{"chars": "chữ Hán giản thể (từ 1 đến 4 chữ)", "pinyin": "phiên âm pinyin có dấu thanh điệu cách nhau bởi khoảng trắng", "meaning": "nghĩa tiếng Việt ngắn gọn"}`
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: `Dịch từ tiếng Việt "${viText}" sang tiếng Trung giản thể để luyện viết. Chỉ trả về duy nhất 1 chuỗi JSON hợp lệ theo định dạng sau, không giải thích gì thêm: {"chars":"chữ Hán","pinyin":"phiên âm có dấu","meaning":"nghĩa tiếng Việt"}`
+                }]
               }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json",
-              temperature: 0.2
-            }
-          })
+            })
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || data.error) {
+          const errCode = data?.error?.status || response.status;
+          const errMsg = data?.error?.message || "Lỗi HTTP";
+          errorLogs.push(`${modelName} (${errCode}): ${errMsg}`);
+          
+          // Nếu báo sai API Key thì dừng ngay để báo cho người dùng
+          if (errMsg.includes("API key not valid") || errCode === "INVALID_ARGUMENT" && errMsg.includes("key")) {
+            break;
+          }
+          continue;
         }
-      );
 
-      const data = await response.json();
-
-      // Nếu Google trả về lỗi (400, 403, 404, 429...), lưu lại thông báo lỗi thực tế
-      if (!response.ok || data.error) {
-        lastErrorMsg = `[${modelName}] ${data?.error?.status || response.status}: ${data?.error?.message || "Lỗi không xác định"}`;
-        console.warn("Thử model tiếp theo do lỗi:", lastErrorMsg);
-        // Nếu lỗi do API key không hợp lệ (API_KEY_INVALID) thì dừng luôn không cần thử model khác
-        if (lastErrorMsg.includes("API_KEY_INVALID") || response.status === 400 || response.status === 403) {
-          break;
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        // Tìm đúng đoạn {...} trong câu trả lời của AI (tránh lỗi khi AI thêm chữ hoặc ```json)
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          errorLogs.push(`${modelName}: Phản hồi không chứa JSON (${rawText.slice(0, 50)})`);
+          continue;
         }
-        continue;
-      }
 
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) {
-        lastErrorMsg = "Phản hồi bị trống hoặc bị bộ lọc an toàn chặn.";
-        continue;
-      }
-
-      // Làm sạch trường hợp AI bọc kết quả trong ```json ... ```
-      const cleanedJson = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-      const result = JSON.parse(cleanedJson);
-
-      if (result && result.chars) {
-        words.unshift({
-          chars: result.chars.trim(),
-          pinyin: (result.pinyin || "").trim(),
-          meaning: (result.meaning || viText).trim()
-        });
-        saveWordList();
-        renderWordList();
-        selectWord(0);
-        document.getElementById("vi-search-input").value = "";
-        return; // Thành công -> Thoát hàm
+        const result = JSON.parse(jsonMatch[0]);
+        if (result && result.chars) {
+          words.unshift({
+            chars: result.chars.trim(),
+            pinyin: (result.pinyin || "").trim(),
+            meaning: (result.meaning || viText).trim()
+          });
+          saveWordList();
+          renderWordList();
+          selectWord(0);
+          document.getElementById("vi-search-input").value = "";
+          return; // Thành công
+        }
+      } catch (innerErr) {
+        errorLogs.push(`${modelName}: ${innerErr.message}`);
       }
     }
 
-    throw new Error(lastErrorMsg || "Không nhận được phản hồi hợp lệ từ Gemini.");
+    throw new Error("Chi tiết lỗi từ Google:\n- " + errorLogs.join("\n- "));
   } catch (err) {
     alert("Lỗi gọi Gemini AI:\n" + err.message);
   } finally {
