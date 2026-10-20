@@ -1,24 +1,138 @@
 import { initDatabase, saveProgress, loadProgress } from "./firebase.js";
 import { fetchCharData, createProgressiveStrokeSVG, exportWorksheetToPDF } from "./pdfExport.js";
 
-// Danh sách từ vựng mặc định giống hệt trong ảnh mẫu của bạn (年级, 暑假, 请教)
+// Danh sách từ vựng Đài ngữ (Taigi Hanji - POJ - English) mặc định
 const DEFAULT_WORDS = [
-  { chars: "年级", pinyin: "nián jí", meaning: "Năm học / Lớp" },
-  { chars: "暑假", pinyin: "shǔ jià", meaning: "Kỳ nghỉ hè" },
-  { chars: "请教", pinyin: "qǐng jiào", meaning: "Xin chỉ giáo" },
-  { chars: "学习", pinyin: "xué xí", meaning: "Học tập" }
+  { chars: "你好", pinyin: "lí hó", meaning: "Hello / How are you" },
+  { chars: "多謝", pinyin: "to-siā", meaning: "Thank you / Many thanks" },
+  { chars: "臺灣", pinyin: "Tâi-oân", meaning: "Taiwan" },
+  { chars: "學習", pinyin: "ha̍k-si̍p", meaning: "To learn / To study" }
 ];
 
 let words = JSON.parse(localStorage.getItem("hanzi_wordlist") || "null") || DEFAULT_WORDS;
+// Set lưu index các từ đã được chọn để xuất PDF
+let selectedWordIndices = new Set(words.map((_, i) => i));
 let currentWordIndex = 0;
 let currentCharIndex = 0;
 let writer = null;
 let showOutline = true;
 let learnedChars = new Set();
 
+// Bộ nhớ đệm từ điển Open Source ChhoeTaigi trên RAM
+let openSourceDict = null;
+let dictLoadPromise = null;
+
+// Tải ngầm và tiền xử lý từ điển ChhoeTaigi 1 lần duy nhất
+function loadOpenSourceDictionary() {
+  if (openSourceDict) return Promise.resolve(openSourceDict);
+  if (dictLoadPromise) return dictLoadPromise;
+
+  dictLoadPromise = fetch("/dictionary.json")
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      // Tiền xử lý chuỗi tìm kiếm để tra cứu 40.000+ từ trong < 1ms
+      openSourceDict = data.map(item => {
+        const mLower = (item.meaning || "").toLowerCase();
+        const pLower = (item.pinyin || "").toLowerCase();
+        // Tách nghĩa tiếng Anh theo dấu phẩy/chấm phẩy và bỏ từ "to " ở đầu động từ
+        const tokens = mLower
+          .split(/[,;/]+/)
+          .map(s => s.replace(/^\(.*?\)\s*/, "").trim())
+          .filter(Boolean);
+        return {
+          chars: item.chars,
+          pinyin: item.pinyin || "",
+          meaning: item.meaning || "",
+          _mLower: mLower,
+          _pLower: pLower,
+          _tokens: tokens
+        };
+      });
+      console.log(`✅ Đã nạp ${openSourceDict.length} từ vựng Anh - Đài (ChhoeTaigi).`);
+      return openSourceDict;
+    })
+    .catch(err => {
+      console.warn("⚠️ Không tải được /dictionary.json, sẽ dùng Gemini AI fallback:", err.message);
+      openSourceDict = [];
+      return openSourceDict;
+    });
+
+  return dictLoadPromise;
+}
+
+// Thuật toán tìm kiếm có xếp hạng độ ưu tiên trong từ điển ChhoeTaigi
+function searchInTaigiDictionary(rawQuery) {
+  if (!openSourceDict || openSourceDict.length === 0) return null;
+
+  const q = rawQuery.trim().toLowerCase();
+  const qNoTo = q.replace(/^to\s+/, ""); // Hỗ trợ tìm động từ cả khi gõ "eat" lẫn "to eat"
+
+  let bestItem = null;
+  let bestScore = -1;
+
+  for (let i = 0; i < openSourceDict.length; i++) {
+    const item = openSourceDict[i];
+    let score = 0;
+
+    // 1. Khớp chính xác chữ Hán hoặc phiên âm POJ
+    if (item.chars === rawQuery.trim() || item._pLower === q) {
+      score = 100;
+    }
+    // 2. Khớp chính xác toàn bộ nghĩa tiếng Anh
+    else if (item._mLower === q || item._mLower === `to ${qNoTo}`) {
+      score = 90;
+    }
+    // 3. Khớp chính xác 1 nghĩa thành phần (VD: "tea, infusion" khớp với "tea")
+    else if (item._tokens.includes(q) || item._tokens.includes(`to ${qNoTo}`) || item._tokens.includes(qNoTo)) {
+      score = 80;
+    }
+    // 4. Nghĩa thành phần bắt đầu bằng từ khóa (ngăn cách bởi khoảng trắng)
+    else if (item._tokens.some(t => t.startsWith(q + " ") || t === `a ${q}` || t === `the ${q}`)) {
+      score = 65;
+    }
+    // 5. Chứa nguyên từ (Word boundary) trong câu nghĩa
+    else if (item._mLower.includes(q)) {
+      const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${escaped}\\b`).test(item._mLower)) {
+        score = 50;
+      } else {
+        score = 25;
+      }
+    }
+
+    if (score > 0) {
+      // Ưu tiên các từ vựng ngắn (1 - 3 chữ Hán) để luyện viết đẹp nhất và nghĩa ngắn gọn
+      const charPenalty = Math.max(0, item.chars.length - 2) * 2;
+      const lengthPenalty = Math.min(10, item._mLower.length * 0.08);
+      const finalScore = score - charPenalty - lengthPenalty;
+
+      if (finalScore > bestScore) {
+        bestScore = finalScore;
+        bestItem = item;
+      }
+    }
+  }
+
+  return bestItem;
+}
+
 async function initApp() {
+  // Tải từ điển ChhoeTaigi song song ngay khi khởi động
+  loadOpenSourceDictionary();
+
+  // Đổi nhãn giao diện tìm kiếm sang Anh - Đài (nếu có trên DOM)
+  const searchInput = document.getElementById("vi-search-input");
+  if (searchInput) {
+    searchInput.placeholder = "Nhập từ tiếng Anh, POJ hoặc chữ Hán (VD: hello, tea, school)...";
+  }
+
   await initDatabase();
   learnedChars = await loadProgress();
+  // Khởi tạo set chọn từ: mặc định chọn tất cả
+  selectedWordIndices = new Set(words.map((_, i) => i));
   renderWordList();
   selectWord(0);
   initFreehandCanvases();
@@ -29,6 +143,25 @@ function saveWordList() {
   localStorage.setItem("hanzi_wordlist", JSON.stringify(words));
 }
 
+function addNewWordToTop(newWord) {
+  // Nếu từ này đã có trong danh sách thì đưa lên đầu thay vì tạo trùng
+  const existingIdx = words.findIndex(w => w.chars === newWord.chars);
+  if (existingIdx !== -1) {
+    words.splice(existingIdx, 1);
+    selectedWordIndices = new Set(
+      [...selectedWordIndices]
+        .filter(i => i !== existingIdx)
+        .map(i => (i > existingIdx ? i - 1 : i))
+    );
+  }
+
+  words.unshift(newWord);
+  selectedWordIndices = new Set([0, ...[...selectedWordIndices].map(i => i + 1)]);
+  saveWordList();
+  renderWordList();
+  selectWord(0);
+}
+
 function renderWordList() {
   const listEl = document.getElementById("word-list");
   listEl.innerHTML = "";
@@ -36,42 +169,63 @@ function renderWordList() {
   words.forEach((item, idx) => {
     const isActive = idx === currentWordIndex;
     const allLearned = Array.from(item.chars).every(c => learnedChars.has(c));
+    const isSelected = selectedWordIndices.has(idx);
 
     const div = document.createElement("div");
     div.className = `p-3 rounded-lg border cursor-pointer transition flex justify-between items-center ${
-      isActive ? "border-emerald-500 bg-emerald-50/70" : "border-slate-200 hover:bg-slate-50"
+      isActive ? "border-[#b5a898] bg-[#efeae1]/80" : "border-[#e6e0d6] hover:bg-[#f5f2eb]"
     }`;
     div.innerHTML = `
-      <div>
+      <label class="flex items-center gap-2 cursor-pointer" title="Chọn để xuất PDF">
+        <input type="checkbox" class="word-select-cb w-4 h-4 accent-[#6e7f74] rounded flex-shrink-0" data-idx="${idx}" ${isSelected ? "checked" : ""} />
+      </label>
+      <div class="flex-1 ml-1 min-w-0" data-nav="${idx}">
         <div class="flex items-center gap-2">
-          <span class="text-xl font-bold font-serif text-slate-800">${item.chars}</span>
-          <span class="text-xs font-medium text-emerald-600">${item.pinyin}</span>
-          ${allLearned ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">✓ Đã thuộc</span>' : ""}
+          <span class="text-xl font-bold font-serif text-[#3d3833]">${item.chars}</span>
+          <span class="text-xs font-medium text-[#7c6a56]">${item.pinyin}</span>
+          ${allLearned ? '<span class="text-xs bg-[#e4ebe6] text-[#526358] px-1.5 py-0.5 rounded">✓ Đã thuộc</span>' : ""}
         </div>
-        <p class="text-xs text-slate-500 mt-0.5">${item.meaning}</p>
+        <p class="text-xs text-[#857d73] mt-0.5 truncate" title="${item.meaning}">${item.meaning}</p>
       </div>
-      <button class="btn-delete-word text-slate-300 hover:text-rose-500 px-2 py-1 text-sm" data-idx="${idx}" title="Xóa từ">&times;</button>
+      <button class="btn-delete-word text-[#c7bfb5] hover:text-rose-400 px-2 py-1 text-sm" data-idx="${idx}" title="Xóa từ">&times;</button>
     `;
 
-    div.addEventListener("click", (e) => {
-      if (e.target.classList.contains("btn-delete-word")) {
-        e.stopPropagation();
-        if (words.length > 1) {
-          words.splice(idx, 1);
-          saveWordList();
-          if (currentWordIndex >= words.length) currentWordIndex = 0;
-          renderWordList();
-          selectWord(currentWordIndex);
-        }
-        return;
+    // Checkbox chọn để xuất PDF
+    div.querySelector(".word-select-cb").addEventListener("change", (e) => {
+      e.stopPropagation();
+      if (e.target.checked) selectedWordIndices.add(idx);
+      else selectedWordIndices.delete(idx);
+      updateSelectAllBtn();
+    });
+
+    // Click vào phần nội dung từ → chuyển sang luyện
+    div.querySelector("[data-nav]").addEventListener("click", () => selectWord(idx));
+
+    // Nút xóa từ
+    div.querySelector(".btn-delete-word").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (words.length > 1) {
+        words.splice(idx, 1);
+        selectedWordIndices = new Set([...selectedWordIndices].filter(i => i !== idx).map(i => i > idx ? i - 1 : i));
+        saveWordList();
+        if (currentWordIndex >= words.length) currentWordIndex = 0;
+        renderWordList();
+        selectWord(currentWordIndex);
       }
-      selectWord(idx);
     });
 
     listEl.appendChild(div);
   });
 
   document.getElementById("learned-counter").textContent = `Đã thuộc: ${learnedChars.size} chữ`;
+  updateSelectAllBtn();
+}
+
+function updateSelectAllBtn() {
+  const btn = document.getElementById("btn-toggle-select-all");
+  if (!btn) return;
+  const allSelected = words.every((_, i) => selectedWordIndices.has(i));
+  btn.textContent = allSelected ? "Bỏ chọn tất cả" : "Chọn tất cả";
 }
 
 function selectWord(index) {
@@ -98,7 +252,9 @@ function renderCharSelector() {
     const btn = document.createElement("button");
     const active = idx === currentCharIndex;
     btn.className = `w-9 h-9 rounded-lg font-serif text-lg font-bold border transition ${
-      active ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+      active
+        ? "bg-[#6e7f74] text-[#faf8f5] border-[#6e7f74]"
+        : "bg-[#faf8f5] text-[#57514a] border-[#dfd9ce] hover:bg-[#efeae1]"
     }`;
     btn.textContent = ch;
     btn.addEventListener("click", () => {
@@ -122,9 +278,9 @@ async function loadCharacterIntoWriter(char) {
     showOutline: showOutline,
     strokeAnimationSpeed: 1.2,
     delayBetweenStrokes: 250,
-    strokeColor: "#0f172a",
-    radicalColor: "#16a34a",
-    outlineColor: "#cbd5e1",
+    strokeColor: "#2C3E35",   // Xám đen trầm ấm (giúp nổi bật trên nền Mint)
+    radicalColor: "#557A6B",  // Xanh Mint đậm cho bộ thủ
+    outlineColor: "#C4D6CD",  // Nét mờ Mint nhẹ
     drawingWidth: 22
   });
 
@@ -135,7 +291,7 @@ async function loadCharacterIntoWriter(char) {
 
   const charData = await fetchCharData(char);
   if (charData && charData.strokes) {
-    badgeEl.textContent = `${charData.strokes.length}画 (Nét)`;
+    badgeEl.textContent = `${charData.strokes.length}畫 (Nét)`;
     previewEl.innerHTML = charData.strokes
       .map((_, sIdx) => `
         <div class="p-1 bg-white border border-slate-200 rounded shadow-2xs">
@@ -144,7 +300,7 @@ async function loadCharacterIntoWriter(char) {
       `)
       .join("");
   } else {
-    badgeEl.textContent = "?画";
+    badgeEl.textContent = "?畫";
     previewEl.innerHTML = '<span class="text-xs text-rose-500">Không tìm thấy dữ liệu nét chữ này.</span>';
   }
 }
@@ -157,8 +313,7 @@ function initFreehandCanvases() {
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "#1e293b";
-
+    ctx.strokeStyle = "#2C3E35"; // Màu mực tàu trầm ấm 
     let drawing = false;
 
     const getPos = (e) => {
@@ -210,86 +365,113 @@ function clearAllCanvases() {
   });
 }
 
-// Dịch Tiếng Việt sang chữ Hán bằng Gemini API (Có fallback model & báo lỗi chi tiết)
-async function translateVietnameseWithAI(viText) {
-  const rawKey = localStorage.getItem("gemini_api_key") || import.meta.env?.VITE_GEMINI_API_KEY || "";
-  const apiKey = rawKey.trim().replace(/^["']|["']$/g, "");
-
-  if (!apiKey) {
-    alert("Vui lòng bấm nút '⚙️ Cấu hình' ở góc trên bên phải để nhập Gemini API Key!");
-    document.getElementById("settings-modal").classList.remove("hidden");
-    document.getElementById("settings-modal").classList.add("flex");
-    return;
-  }
+// Tra cứu & Dịch Tiếng Anh sang Đài ngữ (Taigi Hanji + POJ):
+// - Lớp 1: Tìm tức thì (0ms) trong từ điển mở ChhoeTaigi (/dictionary.json)
+// - Lớp 2: Fallback sang Gemini AI (gemini-3.8-flash) nếu từ chưa có trong từ điển
+async function translateEnglishToTaigi(queryText) {
+  const query = queryText.trim();
+  if (!query) return;
 
   const statusEl = document.getElementById("ai-status");
-  statusEl.textContent = "⚡ Đang dịch siêu tốc...";
+  statusEl.textContent = "⚡ Đang tra từ điển ChhoeTaigi...";
   statusEl.classList.remove("hidden");
 
-  const modelName = "gemini-3.8-flash"; 
-
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Dịch "${viText}" sang tiếng Trung giản thể. Chỉ trả về JSON trơn, không giải thích: {"chars":"chữ Hán","pinyin":"phiên âm","meaning":"nghĩa"}`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 200 
-          }
-        })
-      }
-    );
+    // 1. Đảm bảo từ điển đã nạp xong và tìm kiếm Offline trước
+    await loadOpenSourceDictionary();
+    const dictMatch = searchInTaigiDictionary(query);
 
-    // BƯỚC SỬA LỖI: Đọc dữ liệu dưới dạng Text trước thay vì gọi response.json() ngay lập tức
-    const rawResponseText = await response.text();
-    
-    let data;
-    try {
-      // Ép kiểu sang JSON an toàn
-      data = JSON.parse(rawResponseText);
-    } catch (parseError) {
-      // Nếu lỗi "Unexpected end of JSON" xảy ra, nó sẽ bị bắt ở đây và in ra nội dung thực sự bị lỗi
-      throw new Error(`API trả về nội dung không phải JSON (có thể do lỗi mạng/CORS). Nội dung trả về: ${rawResponseText.slice(0, 100)}`);
-    }
-
-    if (!response.ok || data.error) {
-      const errCode = data?.error?.status || response.status;
-      const errMsg = data?.error?.message || "Lỗi HTTP";
-      throw new Error(`[${modelName}] ${errCode}: ${errMsg}`);
-    }
-
-    let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
-    
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/); 
-    
-    if (!jsonMatch) {
-      throw new Error("Phản hồi không chứa JSON hợp lệ: " + rawText.slice(0, 50));
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-    
-    if (result && result.chars) {
-      words.unshift({
-        chars: result.chars.trim(),
-        pinyin: (result.pinyin || "").trim(),
-        meaning: (result.meaning || viText).trim()
+    if (dictMatch) {
+      addNewWordToTop({
+        chars: dictMatch.chars,
+        pinyin: dictMatch.pinyin,
+        meaning: dictMatch.meaning
       });
-      saveWordList();
-      renderWordList();
-      selectWord(0);
       document.getElementById("vi-search-input").value = "";
+      return; // Hoàn tất tức thì, không cần gọi API
+    }
+
+    // 2. Nếu không có trong từ điển Offline -> Gọi Gemini AI Fallback
+    const rawKey = localStorage.getItem("gemini_api_key") || import.meta.env?.VITE_GEMINI_API_KEY || "";
+    const apiKey = rawKey.trim().replace(/^["']|["']$/g, "");
+
+    if (!apiKey) {
+      alert(`Không tìm thấy "${query}" trong từ điển ChhoeTaigi offline.\nVui lòng bấm '⚙️ Cấu hình' để nhập Gemini API Key nếu muốn dịch bằng AI!`);
+      document.getElementById("settings-modal").classList.remove("hidden");
+      document.getElementById("settings-modal").classList.add("flex");
+      return;
+    }
+
+    statusEl.textContent = "🤖 Đang dịch Anh - Đài bằng AI...";
+
+    const modelName = "gemini-3.8-flash";
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Translate the English term "${query}" into Taiwanese Hokkien (Taigi) using Traditional Hanji characters and Pe̍h-ōe-jī (POJ) romanization. Return ONLY plain JSON without markdown: {"chars":"Traditional Taiwanese Hanji","pinyin":"POJ with tone marks","meaning":"English meaning"}`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 200
+            }
+          })
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      const rawResponseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(rawResponseText);
+      } catch {
+        throw new Error(`Phản hồi không phải JSON hợp lệ: ${rawResponseText.slice(0, 100)}`);
+      }
+
+      if (!response.ok || data.error) {
+        const errCode = data?.error?.status || response.status;
+        const errMsg = data?.error?.message || "Lỗi HTTP";
+        throw new Error(`[${modelName}] ${errCode}: ${errMsg}`);
+      }
+
+      let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("Phản hồi AI không chứa JSON: " + rawText.slice(0, 60));
+      }
+
+      const result = JSON.parse(jsonMatch[0]);
+      if (result && result.chars) {
+        addNewWordToTop({
+          chars: result.chars.trim(),
+          pinyin: (result.pinyin || "").trim(),
+          meaning: (result.meaning || query).trim()
+        });
+        document.getElementById("vi-search-input").value = "";
+      }
+    } catch (innerErr) {
+      clearTimeout(timeoutId);
+      throw innerErr;
     }
   } catch (err) {
-    alert("Lỗi gọi Gemini AI:\n" + err.message);
+    if (err.name === "AbortError") {
+      alert("Quá thời gian phản hồi (>10s). Vui lòng thử lại!");
+    } else {
+      alert("Lỗi tra cứu / dịch AI:\n" + err.message);
+    }
   } finally {
     statusEl.classList.add("hidden");
   }
@@ -335,16 +517,16 @@ function bindEvents() {
   // Xóa 4 ô viết tự do
   document.getElementById("btn-clear-canvas").addEventListener("click", clearAllCanvases);
 
-  // Tìm kiếm AI
+  // Tìm kiếm Từ điển ChhoeTaigi + AI Fallback (Anh -> Đài)
   document.getElementById("btn-translate-ai").addEventListener("click", () => {
     const val = document.getElementById("vi-search-input").value.trim();
-    if (val) translateVietnameseWithAI(val);
+    if (val) translateEnglishToTaigi(val);
   });
 
   document.getElementById("vi-search-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       const val = e.target.value.trim();
-      if (val) translateVietnameseWithAI(val);
+      if (val) translateEnglishToTaigi(val);
     }
   });
 
@@ -353,13 +535,14 @@ function bindEvents() {
     const chars = document.getElementById("manual-hanzi").value.trim();
     const pinyin = document.getElementById("manual-pinyin").value.trim();
     const meaning = document.getElementById("manual-meaning").value.trim();
-    if (!chars) return alert("Vui lòng nhập chữ Hán!");
+    if (!chars) return alert("Vui lòng nhập chữ Hán (Hanji)!");
 
     words.push({
       chars,
       pinyin: pinyin || "",
-      meaning: meaning || "Từ tự thêm"
+      meaning: meaning || "Custom word"
     });
+    selectedWordIndices.add(words.length - 1);
     saveWordList();
     renderWordList();
     selectWord(words.length - 1);
@@ -369,26 +552,53 @@ function bindEvents() {
     document.getElementById("manual-meaning").value = "";
   });
 
-  // Xuất PDF
+  // Xuất PDF - chỉ xuất các từ được chọn (checkbox) trong danh sách
   document.getElementById("btn-export-pdf").addEventListener("click", async () => {
     const btn = document.getElementById("btn-export-pdf");
+
+    const selectedWords = words.filter((_, i) => selectedWordIndices.has(i));
+    if (selectedWords.length === 0) {
+      alert("Vui lòng chọn ít nhất một từ trong danh sách để xuất PDF!");
+      return;
+    }
+
     const originalText = btn.innerHTML;
     btn.innerHTML = "⏳ Đang tạo PDF...";
     btn.disabled = true;
     try {
-      const rowsPerWord = parseInt(localStorage.getItem("pdf_rows") || "2", 10);
-      await exportWorksheetToPDF(words, rowsPerWord);
+      const inlineRows = document.getElementById("inline-pdf-rows");
+      const rowsPerWord = parseInt(inlineRows ? inlineRows.value : (localStorage.getItem("pdf_rows") || "2"), 10);
+      await exportWorksheetToPDF(selectedWords, rowsPerWord);
     } finally {
       btn.innerHTML = originalText;
       btn.disabled = false;
     }
   });
 
+  // Nút chọn tất cả / bỏ chọn tất cả từ để xuất PDF
+  document.getElementById("btn-toggle-select-all").addEventListener("click", () => {
+    const allSelected = words.every((_, i) => selectedWordIndices.has(i));
+    if (allSelected) {
+      selectedWordIndices.clear();
+    } else {
+      words.forEach((_, i) => selectedWordIndices.add(i));
+    }
+    renderWordList();
+  });
+
+  // Dropdown số dòng inline trên header - đồng bộ với localStorage
+  const inlineRowsEl = document.getElementById("inline-pdf-rows");
+  if (inlineRowsEl) {
+    inlineRowsEl.value = localStorage.getItem("pdf_rows") || "2";
+    inlineRowsEl.addEventListener("change", () => {
+      localStorage.setItem("pdf_rows", inlineRowsEl.value);
+    });
+  }
+
   // Modal cấu hình
   const modal = document.getElementById("settings-modal");
   document.getElementById("btn-settings").addEventListener("click", () => {
     document.getElementById("input-gemini-key").value = localStorage.getItem("gemini_api_key") || "";
-    document.getElementById("select-pdf-rows").value = localStorage.getItem("pdf_rows") || "2";
     modal.classList.remove("hidden");
     modal.classList.add("flex");
   });
@@ -400,9 +610,7 @@ function bindEvents() {
 
   document.getElementById("btn-save-settings").addEventListener("click", () => {
     const key = document.getElementById("input-gemini-key").value.trim();
-    const rows = document.getElementById("select-pdf-rows").value;
     localStorage.setItem("gemini_api_key", key);
-    localStorage.setItem("pdf_rows", rows);
     modal.classList.add("hidden");
     modal.classList.remove("flex");
   });

@@ -2,24 +2,24 @@
 .tian-zi-ge-large {
   width: 220px;
   height: 220px;
-  border: 2px solid #16a34a;
+  border: 2px solid #2563eb;
   position: relative;
   background-image: 
-    linear-gradient(to right, transparent 49.5%, #bbf7d0 49.5%, #bbf7d0 50.5%, transparent 50.5%),
-    linear-gradient(to bottom, transparent 49.5%, #bbf7d0 49.5%, #bbf7d0 50.5%, transparent 50.5%);
+    linear-gradient(to right, transparent 49.5%, #bfdbfe 49.5%, #bfdbfe 50.5%, transparent 50.5%),
+    linear-gradient(to bottom, transparent 49.5%, #bfdbfe 49.5%, #bfdbfe 50.5%, transparent 50.5%);
 }
 
 .tian-zi-ge-canvas {
   width: 140px;
   height: 140px;
-  border: 2px solid #16a34a;
+  border: 2px solid #2563eb;
   position: relative;
   background-color: #ffffff;
   background-image: 
-    linear-gradient(to right, transparent 49%, #86efac 49%, #86efac 51%, transparent 51%),
-    linear-gradient(to bottom, transparent 49%, #86efac 49%, #86efac 51%, transparent 51%),
-    linear-gradient(45deg, transparent 49.2%, #dcfce7 49.2%, #dcfce7 50.8%, transparent 50.8%),
-    linear-gradient(-45deg, transparent 49.2%, #dcfce7 49.2%, #dcfce7 50.8%, transparent 50.8%);
+    linear-gradient(to right, transparent 49%, #93c5fd 49%, #93c5fd 51%, transparent 51%),
+    linear-gradient(to bottom, transparent 49%, #93c5fd 49%, #93c5fd 51%, transparent 51%),
+    linear-gradient(45deg, transparent 49.2%, #dbeafe 49.2%, #dbeafe 50.8%, transparent 50.8%),
+    linear-gradient(-45deg, transparent 49.2%, #dbeafe 49.2%, #dbeafe 50.8%, transparent 50.8%);
 }
 
 .freehand-canvas {
@@ -38,7 +38,7 @@
 }
 
 .pdf-word-block {
-  border: 2px solid #2ea96b;
+  border: 2px solid #2563eb;
   margin-bottom: 8px;
   page-break-inside: avoid;
 }
@@ -46,19 +46,19 @@
 /* Phần Header của mỗi từ: Cột trái là Pinyin + Chữ mẫu, Cột phải là Thứ tự từng nét */
 .pdf-header-row {
   display: flex;
-  border-bottom: 1.5px solid #2ea96b;
+  border-bottom: 1.5px solid #2563eb;
 }
 
 .pdf-char-columns {
   display: flex;
-  border-right: 1.5px solid #2ea96b;
+  border-right: 1.5px solid #2563eb;
 }
 
 .pdf-char-col {
   width: 56px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #2ea96b;
+  border-right: 1px solid #2563eb;
 }
 .pdf-char-col:last-child {
   border-right: none;
@@ -66,7 +66,7 @@
 
 .pdf-pinyin-cell {
   height: 24px;
-  border-bottom: 1px solid #2ea96b;
+  border-bottom: 1px solid #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,7 +114,7 @@
 .pdf-grid-row {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  border-bottom: 1px solid #2ea96b;
+  border-bottom: 1px solid #2563eb;
 }
 .pdf-grid-row:last-child {
   border-bottom: none;
@@ -122,7 +122,7 @@
 
 .pdf-tian-cell {
   aspect-ratio: 1 / 1;
-  border-right: 1px solid #2ea96b;
+  border-right: 1px solid #2563eb;
   position: relative;
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@
   top: 50%;
   left: 0;
   right: 0;
-  border-top: 1px dashed #a7f3d0;
+  border-top: 1px dashed #bfdbfe;
   pointer-events: none;
 }
 .pdf-tian-cell::after {
@@ -148,7 +148,7 @@
   left: 50%;
   top: 0;
   bottom: 0;
-  border-left: 1px dashed #a7f3d0;
+  border-left: 1px dashed #bfdbfe;
   pointer-events: none;
 }
 
@@ -156,7 +156,7 @@
   font-size: 36px;
   line-height: 1;
   z-index: 1;
-  color: #3b82f6; /* Xanh lam mẫu giống tờ bài tập */
+  color: #2563eb; /* Xanh lam mẫu giống tờ bài tập */
 }
 
 .pdf-trace-char.faded {

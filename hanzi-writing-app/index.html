@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Học Viết Tiếng Trung - Hanzi Master</title>
+  <title>Chinese Writing Practice - Hanzi Master</title>
   <link rel="manifest" href="/manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,27 +18,64 @@
   <!-- Custom Styles -->
   <link rel="stylesheet" href="/src/style.css" />
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<style>
+  /* Nền tổng체: Xanh Mint kem cực kỳ dịu mắt (#F0F7F4) */
+  body { background-color: #F0F7F4 !important; color: #2C3E35 !important; }
+
+  /* Các nút bấm & điểm nhấn: Xanh Mint trầm ấm (#7BA495 / #638C7D) */
+  .bg-blue-600, .bg-blue-500, .bg-yellow-500, .bg-amber-500 { 
+    background-color: #638C7D !important; 
+    border-color: #638C7D !important;
+    color: #ffffff !important;
+  }
+  .hover\:bg-blue-700:hover, .hover\:bg-yellow-600:hover { 
+    background-color: #4F7366 !important; 
+  }
+
+  /* Nền phụ & khung chứa: Mint nhạt (#E2EDE8 / #D4E3DC) */
+  .bg-blue-50, .bg-blue-50\/70, .bg-slate-50 { background-color: #E2EDE8 !important; }
+  .bg-blue-100 { background-color: #CBE0D6 !important; }
+  
+  /* Màu chữ & đường viền hài hòa */
+  .text-blue-600, .text-blue-700, .text-blue-500 { color: #4F7366 !important; }
+  .text-slate-800, .text-slate-900 { color: #2C3E35 !important; }
+  .text-slate-700, .text-slate-600 { color: #4A5C52 !important; }
+  
+  .border-blue-500, .border-blue-600, .border-blue-200, .border-slate-200, .border-slate-300 { 
+    border-color: #C4D6CD !important; 
+  }
+  .accent-blue-600 { accent-color: #638C7D !important; }
+
+  /* Lưới chữ Điền (Tianzige grids) và đường nét màu xanh mint mềm mại */
+  svg line, svg path { stroke: #B2C9BC !important; }
+</style>
+<body class="bg-blue-50 text-slate-800 min-h-screen flex flex-col">
 
   <!-- Header -->
-  <header class="bg-emerald-600 text-white shadow-md">
+  <header class="bg-blue-600 text-white shadow-md">
     <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
       <div class="flex items-center space-x-3">
-        <span class="text-3xl font-serif bg-white text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow">字</span>
+        <span class="text-3xl font-serif bg-white text-blue-600 w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow">字</span>
         <div>
           <h1 class="text-xl font-bold leading-tight">Hanzi Master</h1>
-          <p class="text-xs text-emerald-100">Luyện viết tiếng Trung trên iPad & Xuất PDF</p>
+          <p class="text-xs text-blue-100"></p>
         </div>
       </div>
 
       <!-- Cài đặt API Keys & Xuất PDF -->
       <div class="flex items-center gap-2">
+        <select id="inline-pdf-rows" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-lg text-sm border border-blue-500 cursor-pointer" title="Practice rows per word">
+          <option value="1">📄 1 row</option>
+          <option value="2" selected>📄 2 rows</option>
+          <option value="3">📄 3 rows</option>
+          <option value="4">📄 4 rows</option>
+        </select>
         <button id="btn-export-pdf" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow flex items-center gap-2 transition">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-          Xuất PDF Luyện Viết
+          Export PDF (Selected)
         </button>
-        <button id="btn-settings" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-sm transition" title="Cấu hình Gemini API & Firebase">
-          ⚙️ Cấu hình
+        <button id="btn-settings" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-lg text-sm transition" title="Configure Gemini API">
+          ⚙️ Settings
         </button>
       </div>
     </div>
@@ -50,16 +87,27 @@
       <input 
         id="vi-search-input" 
         type="text" 
-        placeholder="Nhập từ tiếng Việt (VD: Năm học, Nghỉ hè, Xin chỉ giáo, Mèo...)" 
-        class="flex-1 min-w-[240px] px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+        placeholder="Search English, Pinyin or Hanzi (e.g. hello, tea, school, 学习)..." 
+        class="flex-1 min-w-[240px] px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
       />
+      <!-- Script type toggle: Simplified / Traditional -->
+      <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 text-xs font-medium">
+        <label class="flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md has-[:checked]:bg-blue-600 has-[:checked]:text-white text-slate-600 transition">
+          <input type="radio" name="script-type" id="radio-simplified" value="simplified" class="sr-only" checked />
+          简 Simplified
+        </label>
+        <label class="flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md has-[:checked]:bg-blue-600 has-[:checked]:text-white text-slate-600 transition">
+          <input type="radio" name="script-type" id="radio-traditional" value="traditional" class="sr-only" />
+          繁 Traditional
+        </label>
+      </div>
       <button 
         id="btn-translate-ai" 
-        class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2"
       >
-        <span>🔍 Dịch & Tạo chữ (AI)</span>
+        <span>🔍 Translate (AI)</span>
       </button>
-      <span id="ai-status" class="text-xs text-slate-500 hidden">Đang gọi Gemini AI...</span>
+      <span id="ai-status" class="text-xs text-slate-500 hidden">Calling AI...</span>
     </div>
   </section>
 
@@ -70,10 +118,13 @@
     <aside class="lg:col-span-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
       <div>
         <div class="flex justify-between items-center mb-3">
-          <h2 class="font-bold text-slate-700">📚 Danh sách từ vựng</h2>
-          <span id="learned-counter" class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-semibold">Đã thuộc: 0</span>
+          <h2 class="font-bold text-slate-700">📚 Vocabulary List</h2>
+          <span id="learned-counter" class="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">Learned: 0</span>
         </div>
-        <p class="text-xs text-slate-500 mb-3">Bấm vào từng từ để luyện viết hoặc xuất toàn bộ danh sách ra file PDF chuẩn ô chữ Điền.</p>
+        <div class="flex justify-between items-center mb-2">
+          <p class="text-xs text-slate-500">☑️ Check words to export. Click to practice.</p>
+          <button id="btn-toggle-select-all" class="text-xs text-blue-600 hover:underline font-medium">Select all</button>
+        </div>
         
         <!-- Danh sách các từ -->
         <div id="word-list" class="space-y-2 max-h-[420px] overflow-y-auto pr-1"></div>
@@ -81,14 +132,14 @@
 
       <!-- Thêm từ thủ công -->
       <div class="mt-4 pt-3 border-t border-slate-100">
-        <p class="text-xs font-semibold text-slate-500 mb-2">Thêm từ thủ công vào danh sách:</p>
+        <p class="text-xs font-semibold text-slate-500 mb-2">Add word manually:</p>
         <div class="grid grid-cols-3 gap-2 mb-2">
-          <input id="manual-hanzi" type="text" placeholder="Chữ Hán (年级)" class="px-2.5 py-1.5 border rounded text-sm" />
+          <input id="manual-hanzi" type="text" placeholder="Hanzi (年级)" class="px-2.5 py-1.5 border rounded text-sm" />
           <input id="manual-pinyin" type="text" placeholder="Pinyin (nián jí)" class="px-2.5 py-1.5 border rounded text-sm" />
-          <input id="manual-meaning" type="text" placeholder="Nghĩa (Năm học)" class="px-2.5 py-1.5 border rounded text-sm" />
+          <input id="manual-meaning" type="text" placeholder="Meaning (Grade)" class="px-2.5 py-1.5 border rounded text-sm" />
         </div>
         <button id="btn-add-manual" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded text-xs font-semibold transition">
-          + Thêm vào danh sách
+          + Add to list
         </button>
       </div>
     </aside>
@@ -102,25 +153,25 @@
           <div>
             <div class="flex items-center gap-3">
               <h2 id="current-word-title" class="text-2xl font-bold text-slate-800">年级</h2>
-              <span id="current-word-pinyin" class="text-lg text-emerald-600 font-medium">nián jí</span>
+              <span id="current-word-pinyin" class="text-lg text-blue-600 font-medium">nián jí</span>
               <span id="current-word-meaning" class="text-sm text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded">Năm học / Lớp</span>
             </div>
             <!-- Bộ chọn chữ đơn trong từ ghép -->
             <div class="flex items-center gap-2 mt-2">
-              <span class="text-xs text-slate-500">Chọn chữ để viết:</span>
+              <span class="text-xs text-slate-500">Select character:</span>
               <div id="char-selector" class="flex gap-1.5"></div>
             </div>
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button id="btn-animate" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              ▶️ Xem nét mẫu
+            <button id="btn-animate" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+              ▶️ Animate Strokes
             </button>
             <button id="btn-quiz" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-              ✍️ Tự viết (Chấm điểm)
+              ✍️ Quiz Mode
             </button>
             <button id="btn-toggle-outline" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm transition">
-              👁️ Ẩn/Hiện nét mờ
+              👁️ Toggle Outline
             </button>
           </div>
         </div>
@@ -131,14 +182,14 @@
             <div class="tian-zi-ge-large relative rounded-lg shadow-inner bg-emerald-50/20">
               <div id="hanzi-target" class="w-[220px] h-[220px]"></div>
             </div>
-            <p id="quiz-feedback" class="text-sm font-medium text-emerald-600 mt-2 h-5 text-center"></p>
+            <p id="quiz-feedback" class="text-sm font-medium text-blue-600 mt-2 h-5 text-center"></p>
           </div>
 
           <!-- Hiển thị phân rã từng nét (Stroke Order Progression) giống tờ PDF -->
           <div class="md:col-span-7 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Thứ tự từng nét (Stroke Order)</span>
-              <span id="stroke-count-badge" class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">0画 (Nét)</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Stroke Order</span>
+              <span id="stroke-count-badge" class="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">0 strokes</span>
             </div>
             <div id="stroke-order-preview" class="flex flex-wrap gap-2 items-center min-h-[120px] py-2"></div>
           </div>
@@ -186,8 +237,8 @@
       <div class="space-y-3 text-sm">
         <div>
           <label class="block font-medium text-slate-700 mb-1">Gemini API Key (Để dịch Tiếng Việt -> Trung):</label>
-          <input id="input-gemini-key" type="password" placeholder="AIzaSy..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          <p class="text-xs text-slate-400 mt-1">Lấy miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-emerald-600 underline">Google AI Studio</a>. Key được lưu trên trình duyệt của bạn.</p>
+          <input id="input-gemini-key" type="password" placeholder="AIzaSy..." class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <p class="text-xs text-slate-400 mt-1">Lấy miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>. Key được lưu trên trình duyệt của bạn.</p>
         </div>
         <div>
           <label class="block font-medium text-slate-700 mb-1">Số dòng ô luyện viết mỗi từ khi xuất PDF:</label>
@@ -199,7 +250,7 @@
         </div>
       </div>
       <div class="flex justify-end gap-2 pt-3 border-t">
-        <button id="btn-save-settings" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Lưu cấu hình</button>
+        <button id="btn-save-settings" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Lưu cấu hình</button>
       </div>
     </div>
   </div>
