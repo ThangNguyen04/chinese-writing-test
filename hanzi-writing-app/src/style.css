@@ -1,128 +1,205 @@
-:root {
-  /* Bảng màu xanh dương theo yêu cầu */
-  --powder-blue: rgb(176,224,230);
-  --lightblue: rgb(173,216,230);
-  --lightskyblue: rgb(135,206,250);
-  --skyblue: rgb(135,206,235);
-  --deepskyblue: rgb(0,191,255);
-  --lightsteelblue: rgb(176,196,222);
-  --dodgerblue: rgb(30,144,255);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-  --bg-body: #f8fbff;
-  --text-main: #1e293b;
-  --border-radius: 12px;
+:root {
+  /* Bảng màu xanh dương của bạn */
+  --blue-soft: #f0f8ff;
+  --blue-primary: #1E90FF; /* DodgerBlue */
+  --blue-hover: #00BFFF;   /* DeepSkyBlue */
+  --blue-light: #e0f2fe;
+  --blue-border: #bae6fd;
+  
+  /* Màu hệ thống Minimalist */
+  --bg-body: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   background-color: var(--bg-body);
   color: var(--text-main);
-  line-height: 1.6;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Layout chính */
 .app-container {
-  max-width: 600px;
+  max-width: 560px;
   margin: 0 auto;
-  padding: 16px;
-  background-color: #ffffff;
-  min-height: 100vh;
-  box-shadow: 0 0 20px rgba(176,196,222, 0.3);
+  padding: 24px 16px;
 }
 
 .header {
-  background: linear-gradient(135deg, var(--powder-blue), var(--lightblue));
-  padding: 20px;
   text-align: center;
-  border-radius: var(--border-radius);
-  margin-bottom: 24px;
-  border: 1px solid var(--lightsteelblue);
+  margin-bottom: 32px;
 }
 
 .header h1 {
-  color: #1e3a8a;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
 }
 
-.search-section, .hanzi-section, .practice-section, .export-section {
-  margin-bottom: 24px;
+.header p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
 }
 
+/* UI Thẻ (Card) giống HieuChuHan */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.card-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Input & Box tra cứu */
 .search-box {
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
 }
 
-input[type="text"], select {
+input[type="text"] {
   flex: 1;
-  padding: 12px;
-  border: 2px solid var(--lightsteelblue);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
   font-size: 1rem;
-  outline: none;
-}
-
-input[type="text"]:focus, select:focus {
-  border-color: var(--dodgerblue);
-}
-
-.btn-primary, .btn-secondary {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
+  font-family: inherit;
   transition: all 0.2s;
+  background-color: #f8fafc;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--blue-primary);
+  background-color: #fff;
+  box-shadow: 0 0 0 4px var(--blue-light);
+}
+
+select {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: white;
+}
+
+/* Nút bấm (Buttons) */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .btn-primary {
-  background-color: var(--dodgerblue);
+  background-color: var(--blue-primary);
   color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(30, 144, 255, 0.2);
 }
 
 .btn-primary:hover {
-  background-color: var(--deepskyblue);
+  background-color: var(--blue-hover);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background-color: var(--lightskyblue);
-  color: #1e3a8a;
+  background-color: var(--blue-light);
+  color: var(--blue-primary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .btn-secondary:hover {
-  background-color: var(--skyblue);
+  background-color: var(--blue-border);
 }
 
+.w-full {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Khu vực hiển thị kết quả chữ Hán */
 .result-box {
-  background-color: var(--powder-blue);
-  padding: 16px;
-  border-radius: 8px;
   text-align: center;
-  border: 1px solid var(--lightsteelblue);
+  padding: 24px;
+  background-color: var(--blue-soft);
+  border-radius: 12px;
+  border: 1px dashed var(--blue-border);
 }
 
 #char-display {
-  font-size: 3rem;
-  font-weight: normal;
-  margin-bottom: 8px;
+  font-size: 4rem;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--blue-primary);
+  margin-bottom: 12px;
 }
 
-/* Ô lưới chữ Hán và Canvas */
+.result-details p {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.result-details strong {
+  color: var(--text-muted);
+}
+
+/* Lưới HanziWriter và Canvas (Điền Tự Cách / Mễ Tự Cách) */
+.hanzi-controls, .canvas-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.canvas-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 .hanzi-grid-box {
-  width: 300px;
+  width: 100%;
+  max-width: 300px;
   height: 300px;
   margin: 0 auto;
-  border: 2px dashed var(--lightsteelblue);
-  background-color: #fff;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
+  background-color: #fff;
   position: relative;
   display: block;
 }
 
-/* Vẽ lưới Mễ tự cách (đường chéo và chữ thập) bằng CSS */
+/* Kẻ lưới bên trong ô viết chữ */
 .hanzi-grid-box::before, .hanzi-grid-box::after {
   content: '';
   position: absolute;
@@ -131,52 +208,37 @@ input[type="text"]:focus, select:focus {
 }
 .hanzi-grid-box::before {
   background: 
-    linear-gradient(to bottom, transparent 49%, var(--lightblue) 49%, var(--lightblue) 51%, transparent 51%),
-    linear-gradient(to right, transparent 49%, var(--lightblue) 49%, var(--lightblue) 51%, transparent 51%);
+    linear-gradient(to bottom, transparent 49.5%, #e2e8f0 49.5%, #e2e8f0 50.5%, transparent 50.5%),
+    linear-gradient(to right, transparent 49.5%, #e2e8f0 49.5%, #e2e8f0 50.5%, transparent 50.5%);
 }
 .hanzi-grid-box::after {
   background: 
-    linear-gradient(45deg, transparent 49%, var(--powder-blue) 49%, var(--powder-blue) 51%, transparent 51%),
-    linear-gradient(-45deg, transparent 49%, var(--powder-blue) 49%, var(--powder-blue) 51%, transparent 51%);
+    linear-gradient(45deg, transparent 49.5%, #f1f5f9 49.5%, #f1f5f9 50.5%, transparent 50.5%),
+    linear-gradient(-45deg, transparent 49.5%, #f1f5f9 49.5%, #f1f5f9 50.5%, transparent 50.5%);
 }
 
-.hanzi-controls {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.canvas-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.canvas-tools {
-  display: flex;
-  gap: 8px;
-}
-
+/* Tools Canvas */
 .tool-btn {
   background: #f1f5f9;
-  border: 1px solid var(--lightsteelblue);
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.tool-btn:hover {
+  background: #e2e8f0;
 }
 
 .tool-btn.active {
-  background: var(--lightskyblue);
-  font-weight: bold;
+  background: var(--blue-primary);
+  color: white;
+  border-color: var(--blue-primary);
 }
 
-.export-section {
+.export-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background-color: var(--powder-blue);
-  padding: 16px;
-  border-radius: 8px;
+  justify-content: space-between;
 }

@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Luyện Viết Chữ Hán - Việt Trung</title>
+  <title>Hiểu Chữ Hán - Luyện Viết</title>
   <link rel="stylesheet" href="style.css">
-  <!-- Tải HanziWriter & html2pdf -->
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -13,64 +12,75 @@
   <div class="app-container">
     <header class="header">
       <h1>Học & Luyện Viết Chữ Hán</h1>
+      <p>Từ điển Trung – Hán Việt, tra nghĩa & học chữ</p>
     </header>
 
+    <!-- Thẻ 1: Tra cứu -->
     <main class="main-content">
-      <!-- Khu vực tìm kiếm -->
-      <section class="search-section">
+      <section class="card search-section">
         <div class="search-box">
           <input type="text" id="search-input" placeholder="Nhập từ tiếng Việt hoặc chữ Hán...">
-          <button id="search-btn" class="btn-primary">Tìm kiếm</button>
+          <button id="search-btn" class="btn-primary">Tra cứu</button>
         </div>
         <div id="search-result" class="result-box">
           <h2 id="char-display">-</h2>
-          <p id="pinyin-display">Pinyin: -</p>
-          <p id="meaning-display">Nghĩa: -</p>
+          <div class="result-details">
+            <p id="pinyin-display"><strong>Pinyin:</strong> -</p>
+            <p id="meaning-display"><strong>Nghĩa:</strong> -</p>
+          </div>
         </div>
       </section>
 
-      <!-- Khu vực biểu diễn HanziWriter -->
-      <section class="hanzi-section">
+      <!-- Thẻ 2: Hướng dẫn viết -->
+      <section class="card hanzi-section">
+        <div class="card-header">
+          <h3>Hướng dẫn viết</h3>
+          <div class="hanzi-controls">
+            <button id="animate-btn" class="btn-secondary">▶ Mô phỏng</button>
+            <button id="quiz-btn" class="btn-secondary">✍️ Kiểm tra</button>
+          </div>
+        </div>
         <div id="hanzi-character" class="hanzi-grid-box"></div>
-        <div class="hanzi-controls">
-          <button id="animate-btn" class="btn-secondary">▶ Mô phỏng nét</button>
-          <button id="quiz-btn" class="btn-secondary">✍️ Kiểm tra viết</button>
-        </div>
       </section>
 
-      <!-- Khu vực luyện viết tự do (Canvas) -->
-      <section class="practice-section">
-        <div class="canvas-header">
+      <!-- Thẻ 3: Bảng nháp tự do -->
+      <section class="card practice-section">
+        <div class="card-header">
           <h3>Luyện viết tự do</h3>
           <div class="canvas-tools">
             <button class="tool-btn active" data-tool="pen">✏️ Bút</button>
             <button class="tool-btn" data-tool="eraser">🧹 Xóa nét</button>
-            <button class="tool-btn" id="undo-btn">↩️ Hoàn tác</button>
-            <button class="tool-btn" id="clear-btn">🗑️ Xóa hết</button>
+            <button class="tool-btn" id="undo-btn">↩️ Undo</button>
+            <button class="tool-btn" id="clear-btn">🗑️ Clear</button>
           </div>
         </div>
-        <canvas id="freehand-canvas" class="hanzi-grid-box" width="300" height="300"></canvas>
+        <div class="canvas-wrapper">
+          <canvas id="freehand-canvas" class="hanzi-grid-box" width="300" height="300"></canvas>
+        </div>
       </section>
 
-      <!-- Khu vực xuất file PDF -->
-      <section class="export-section">
-        <label for="practice-rows-select">Số dòng bài tập:</label>
-        <select id="practice-rows-select">
-          <option value="1">1 dòng</option>
-          <option value="2">2 dòng</option>
-          <option value="3" selected>3 dòng</option>
-          <option value="4">4 dòng</option>
-          <option value="5">5 dòng</option>
-          <option value="6">6 dòng</option>
-          <option value="7">7 dòng</option>
-          <option value="8">8 dòng</option>
-          <option value="9">9 dòng</option>
-          <option value="10">10 dòng</option>
-        </select>
-        <button id="export-pdf-btn" class="btn-primary">📥 Xuất PDF</button>
+      <!-- Thẻ 4: Xuất PDF -->
+      <section class="card export-section">
+        <div class="export-controls">
+          <label for="practice-rows-select">Số dòng bài tập:</label>
+          <select id="practice-rows-select">
+            <option value="1">1 dòng</option>
+            <option value="2">2 dòng</option>
+            <option value="3" selected>3 dòng</option>
+            <option value="4">4 dòng</option>
+            <option value="5">5 dòng</option>
+            <option value="6">6 dòng</option>
+            <option value="7">7 dòng</option>
+            <option value="8">8 dòng</option>
+            <option value="9">9 dòng</option>
+            <option value="10">10 dòng</option>
+          </select>
+        </div>
+        <button id="export-pdf-btn" class="btn-primary w-full">📥 Tải Worksheet (PDF)</button>
       </section>
     </main>
   </div>
-  <script src="app.js"></script>
+  <!-- Nếu dùng Vite, hãy import app.js ở đây như module -->
+  <script type="module" src="app.js"></script> 
 </body>
 </html>
