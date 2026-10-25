@@ -1,5 +1,5 @@
 import './style.css';
-import { fetchCharData, createProgressiveStrokeSVG, exportWorksheetToPDF } from './pdfExport.js';
+import { fetchCharData, createProgressiveStrokeSVG, createFullCharSVG, exportWorksheetToPDF } from './pdfExport.js';
 
 const DEFAULT_WORDS = [
   { chars: '年级', pinyin: 'nián jí', meaning: 'Năm học / Lớp' },
@@ -18,6 +18,8 @@ let currentWordIndex = 0;
 let currentCharIndex = 0;
 let writer = null;
 let showOutline = true;
+let showFreehandOutline = true; // Trạng thái nét mờ của 4 ô luyện viết tự do
+let currentCharData = null;
 
 const saveWords = () => localStorage.setItem('hanzi_wordlist', JSON.stringify(words));
 
@@ -141,6 +143,9 @@ async function loadCharacterIntoWriter(char) {
   previewEl.innerHTML = '<span class="text-xs text-slate-400">Đang tải thứ tự nét...</span>';
 
   const data = await fetchCharData(char);
+  currentCharData = data;
+  updateFreehandOutlines(char, data);
+
   if (data && data.strokes) {
     badgeEl.textContent = `${data.strokes.length}画 (Nét)`;
     previewEl.innerHTML = data.strokes
@@ -150,6 +155,42 @@ async function loadCharacterIntoWriter(char) {
     badgeEl.textContent = '?画';
     previewEl.innerHTML = '<span class="text-xs text-rose-500">Không tìm thấy dữ liệu nét chữ này.</span>';
   }
+}
+
+// Cập nhật lớp nét mờ cho 4 ô luyện viết tự do
+function updateFreehandOutlines(char, charData) {
+  const btn = $('btn-toggle-freehand-outline');
+  if (btn) {
+    if (showFreehandOutline) {
+      btn.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1.5 bg-emerald-100 text-emerald-800 border-emerald-300';
+      btn.innerHTML = '👁️ Nét mờ: Bật';
+    } else {
+      btn.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1.5 bg-slate-100 text-slate-500 border-slate-200';
+      btn.innerHTML = '👁️ Nét mờ: Tắt';
+    }
+  }
+
+  const outlineElements = document.querySelectorAll('.freehand-outline');
+  if (!outlineElements.length) return;
+
+  let contentHtml = '';
+  if (charData && charData.strokes) {
+    // Dùng vector nét mờ chuẩn của HanziWriter (màu xám nhạt #cbd5e1)
+    contentHtml = createFullCharSVG(charData.strokes, '#cbd5e1', 110);
+  } else if (char) {
+    contentHtml = `<span class="font-serif text-7xl text-slate-300 select-none">${esc(char)}</span>`;
+  }
+
+  outlineElements.forEach((el) => {
+    el.innerHTML = contentHtml;
+    if (showFreehandOutline) {
+      el.style.opacity = '1';
+      el.style.display = 'flex';
+    } else {
+      el.style.opacity = '0';
+      el.style.display = 'none';
+    }
+  });
 }
 
 // ---------- 4 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint) ----------
@@ -335,6 +376,13 @@ function bindEvents() {
   // Bộ công cụ vẽ: Bút viết & Gôm tẩy
   $('tool-pen')?.addEventListener('click', () => setFreehandTool('pen'));
   $('tool-eraser')?.addEventListener('click', () => setFreehandTool('eraser'));
+
+  // Bật/tắt nét mờ trong 4 ô luyện viết tự do
+  $('btn-toggle-freehand-outline')?.addEventListener('click', () => {
+    showFreehandOutline = !showFreehandOutline;
+    const char = Array.from(words[currentWordIndex]?.chars || '')[currentCharIndex] || '';
+    updateFreehandOutlines(char, currentCharData);
+  });
 
   $('search-btn').addEventListener('click', handleSearch);
   $('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });

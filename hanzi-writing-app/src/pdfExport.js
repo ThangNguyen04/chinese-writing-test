@@ -38,7 +38,7 @@ export function createProgressiveStrokeSVG(strokes, stepIndex, size = 28) {
  * Tạo SVG chữ mẫu hoặc chữ mờ cho vào ô chữ Điền trong PDF
  * (Dùng trực tiếp vector của HanziWriter để đảm bảo máy nào xuất PDF cũng ra đúng font Khải Thể chuẩn)
  */
-function createFullCharSVG(strokes, color = "#111827", size = 42) {
+export function createFullCharSVG(strokes, color = "#111827", size = 42) {
   if (!strokes) return "";
   const paths = strokes.map(d => `<path d="${d}" fill="${color}"></path>`).join("");
   return `
