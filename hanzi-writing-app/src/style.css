@@ -1,164 +1,182 @@
-/* Giao diện ô chữ Điền (田字格) trên Web */
-.tian-zi-ge-large {
-  width: 220px;
-  height: 220px;
-  border: 2px solid #2563eb;
-  position: relative;
-  background-image: 
-    linear-gradient(to right, transparent 49.5%, #bfdbfe 49.5%, #bfdbfe 50.5%, transparent 50.5%),
-    linear-gradient(to bottom, transparent 49.5%, #bfdbfe 49.5%, #bfdbfe 50.5%, transparent 50.5%);
+:root {
+  /* Bảng màu xanh dương theo yêu cầu */
+  --powder-blue: rgb(176,224,230);
+  --lightblue: rgb(173,216,230);
+  --lightskyblue: rgb(135,206,250);
+  --skyblue: rgb(135,206,235);
+  --deepskyblue: rgb(0,191,255);
+  --lightsteelblue: rgb(176,196,222);
+  --dodgerblue: rgb(30,144,255);
+
+  --bg-body: #f8fbff;
+  --text-main: #1e293b;
+  --border-radius: 12px;
 }
 
-.tian-zi-ge-canvas {
-  width: 140px;
-  height: 140px;
-  border: 2px solid #2563eb;
-  position: relative;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.app-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px;
   background-color: #ffffff;
-  background-image: 
-    linear-gradient(to right, transparent 49%, #93c5fd 49%, #93c5fd 51%, transparent 51%),
-    linear-gradient(to bottom, transparent 49%, #93c5fd 49%, #93c5fd 51%, transparent 51%),
-    linear-gradient(45deg, transparent 49.2%, #dbeafe 49.2%, #dbeafe 50.8%, transparent 50.8%),
-    linear-gradient(-45deg, transparent 49.2%, #dbeafe 49.2%, #dbeafe 50.8%, transparent 50.8%);
+  min-height: 100vh;
+  box-shadow: 0 0 20px rgba(176,196,222, 0.3);
 }
 
-.freehand-canvas {
-  touch-action: none; /* Ngăn cuộn trang khi dùng Apple Pencil trên iPad */
-  cursor: crosshair;
+.header {
+  background: linear-gradient(135deg, var(--powder-blue), var(--lightblue));
+  padding: 20px;
+  text-align: center;
+  border-radius: var(--border-radius);
+  margin-bottom: 24px;
+  border: 1px solid var(--lightsteelblue);
 }
 
-/* =========================================================
-   CSS DÀNH RIÊNG CHO XUẤT FILE PDF (GIỐNG 100% ẢNH MẪU)
-   ========================================================= */
-.pdf-page {
-  width: 190mm;
-  background: #ffffff;
-  font-family: "Kaiti", "STKaiti", "KaiTi", "BiauKai", "Noto Serif SC", serif;
-  color: #111;
+.header h1 {
+  color: #1e3a8a;
+  font-size: 1.5rem;
 }
 
-.pdf-word-block {
-  border: 2px solid #2563eb;
-  margin-bottom: 8px;
-  page-break-inside: avoid;
+.search-section, .hanzi-section, .practice-section, .export-section {
+  margin-bottom: 24px;
 }
 
-/* Phần Header của mỗi từ: Cột trái là Pinyin + Chữ mẫu, Cột phải là Thứ tự từng nét */
-.pdf-header-row {
+.search-box {
   display: flex;
-  border-bottom: 1.5px solid #2563eb;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
-.pdf-char-columns {
-  display: flex;
-  border-right: 1.5px solid #2563eb;
-}
-
-.pdf-char-col {
-  width: 56px;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #2563eb;
-}
-.pdf-char-col:last-child {
-  border-right: none;
-}
-
-.pdf-pinyin-cell {
-  height: 24px;
-  border-bottom: 1px solid #2563eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: Arial, sans-serif;
-  font-size: 13px;
-  color: #333;
-}
-
-.pdf-big-char-cell {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 44px;
-  line-height: 1;
-  position: relative;
-}
-
-/* Khu vực hiển thị số nét & tiến trình từng nét (6画, 9画...) */
-.pdf-strokes-area {
+input[type="text"], select {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  padding: 4px 10px;
+  padding: 12px;
+  border: 2px solid var(--lightsteelblue);
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
 }
 
-.pdf-stroke-line {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 36px;
+input[type="text"]:focus, select:focus {
+  border-color: var(--dodgerblue);
 }
 
-.pdf-stroke-count {
-  font-family: Arial, sans-serif;
-  font-size: 12px;
+.btn-primary, .btn-secondary {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 600;
-  margin-right: 6px;
-  min-width: 34px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* Lưới các ô chữ Điền luyện viết phía dưới */
-.pdf-grid-row {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  border-bottom: 1px solid #2563eb;
-}
-.pdf-grid-row:last-child {
-  border-bottom: none;
+.btn-primary {
+  background-color: var(--dodgerblue);
+  color: white;
 }
 
-.pdf-tian-cell {
-  aspect-ratio: 1 / 1;
-  border-right: 1px solid #2563eb;
+.btn-primary:hover {
+  background-color: var(--deepskyblue);
+}
+
+.btn-secondary {
+  background-color: var(--lightskyblue);
+  color: #1e3a8a;
+}
+
+.btn-secondary:hover {
+  background-color: var(--skyblue);
+}
+
+.result-box {
+  background-color: var(--powder-blue);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--lightsteelblue);
+}
+
+#char-display {
+  font-size: 3rem;
+  font-weight: normal;
+  margin-bottom: 8px;
+}
+
+/* Ô lưới chữ Hán và Canvas */
+.hanzi-grid-box {
+  width: 300px;
+  height: 300px;
+  margin: 0 auto;
+  border: 2px dashed var(--lightsteelblue);
+  background-color: #fff;
+  border-radius: 8px;
   position: relative;
+  display: block;
+}
+
+/* Vẽ lưới Mễ tự cách (đường chéo và chữ thập) bằng CSS */
+.hanzi-grid-box::before, .hanzi-grid-box::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+.hanzi-grid-box::before {
+  background: 
+    linear-gradient(to bottom, transparent 49%, var(--lightblue) 49%, var(--lightblue) 51%, transparent 51%),
+    linear-gradient(to right, transparent 49%, var(--lightblue) 49%, var(--lightblue) 51%, transparent 51%);
+}
+.hanzi-grid-box::after {
+  background: 
+    linear-gradient(45deg, transparent 49%, var(--powder-blue) 49%, var(--powder-blue) 51%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, var(--powder-blue) 49%, var(--powder-blue) 51%, transparent 51%);
+}
+
+.hanzi-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.canvas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.canvas-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.tool-btn {
+  background: #f1f5f9;
+  border: 1px solid var(--lightsteelblue);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool-btn.active {
+  background: var(--lightskyblue);
+  font-weight: bold;
+}
+
+.export-section {
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-.pdf-tian-cell:last-child {
-  border-right: none;
-}
-
-/* Đường kẻ chữ thập đứt nét bên trong mỗi ô PDF */
-.pdf-tian-cell::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  border-top: 1px dashed #bfdbfe;
-  pointer-events: none;
-}
-.pdf-tian-cell::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  border-left: 1px dashed #bfdbfe;
-  pointer-events: none;
-}
-
-.pdf-trace-char {
-  font-size: 36px;
-  line-height: 1;
-  z-index: 1;
-  color: #2563eb; /* Xanh lam mẫu giống tờ bài tập */
-}
-
-.pdf-trace-char.faded {
-  color: #cbd5e1; /* Chữ mờ xám nhạt để đồ theo */
+  gap: 12px;
+  background-color: var(--powder-blue);
+  padding: 16px;
+  border-radius: 8px;
 }
