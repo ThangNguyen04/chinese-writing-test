@@ -1,7 +1,4 @@
-// ==========================================
-// 1. CẤU HÌNH API KEY (GẮN CỨNG)
-// ==========================================
-const GEMINI_MODEL = "gemini-3.5-flash-lite";
+import './style.css';
 
 // ==========================================
 // 2. KHỞI TẠO HANZI WRITER & UI
