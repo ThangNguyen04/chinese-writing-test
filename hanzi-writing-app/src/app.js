@@ -32,16 +32,16 @@ function renderWordList() {
     const active = idx === currentWordIndex;
     const allLearned = Array.from(item.chars).every((c) => learnedChars.has(c));
     const div = document.createElement('div');
-    div.className = `p-3 rounded-xl border cursor-pointer transition flex items-center gap-2 ${
-      active ? 'border-red-500 bg-red-50/70 shadow-xs' : 'border-slate-200 hover:bg-slate-50'
+    div.className = `p-3.5 rounded-2xl border cursor-pointer transition flex items-center gap-2.5 ${
+      active ? 'border-[#455d95] bg-[#edf3fa] shadow-2xs' : 'border-slate-200/80 hover:bg-slate-50'
     }`;
     div.innerHTML = `
-      <input type="checkbox" class="word-cb w-4 h-4 accent-red-600 flex-shrink-0" ${selected.has(idx) ? 'checked' : ''} title="Chọn để xuất PDF" />
+      <input type="checkbox" class="word-cb w-4 h-4 accent-[#2d426d] flex-shrink-0 cursor-pointer" ${selected.has(idx) ? 'checked' : ''} title="Chọn để xuất PDF" />
       <div class="flex-1 min-w-0 word-nav">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="text-xl font-bold font-serif text-slate-800">${esc(item.chars)}</span>
-          <span class="text-xs font-semibold text-red-600">${esc(item.pinyin)}</span>
-          ${allLearned ? '<span class="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">✓ Đã thuộc</span>' : ''}
+          <span class="text-xs font-bold text-[#2d426d]">${esc(item.pinyin)}</span>
+          ${allLearned ? '<span class="text-[11px] bg-[#e3ecf6] text-[#2d426d] font-semibold px-2 py-0.5 rounded-full">✓ Đã thuộc</span>' : ''}
         </div>
         <p class="text-xs text-slate-500 mt-0.5 truncate" title="${esc(item.meaning)}">${esc(item.meaning)}</p>
       </div>
@@ -106,10 +106,10 @@ function renderCharSelector() {
   el.innerHTML = '';
   Array.from(words[currentWordIndex].chars).forEach((ch, idx) => {
     const btn = document.createElement('button');
-    btn.className = `w-9 h-9 rounded-xl font-serif text-lg font-bold border transition ${
+    btn.className = `w-10 h-10 rounded-2xl font-serif text-lg font-bold border transition ${
       idx === currentCharIndex
-        ? 'bg-red-600 text-white border-red-600 shadow-xs'
-        : 'bg-white text-slate-700 border-slate-300 hover:border-red-300'
+        ? 'bg-[#2d426d] text-white border-[#2d426d] shadow-xs'
+        : 'bg-white text-slate-700 border-slate-200 hover:border-[#a0c1e1]'
     }`;
     btn.textContent = ch;
     btn.addEventListener('click', () => {
@@ -133,7 +133,7 @@ async function loadCharacterIntoWriter(char) {
     strokeAnimationSpeed: 1.2,
     delayBetweenStrokes: 250,
     strokeColor: '#0f172a',
-    radicalColor: '#dc2626',
+    radicalColor: '#2d426d',
     outlineColor: '#cbd5e1',
     drawingWidth: 22
   });
@@ -149,7 +149,7 @@ async function loadCharacterIntoWriter(char) {
   if (data && data.strokes) {
     badgeEl.textContent = `${data.strokes.length}画 (Nét)`;
     previewEl.innerHTML = data.strokes
-      .map((_, i) => `<div class="p-1 bg-white border border-slate-200 rounded-lg shadow-2xs">${createProgressiveStrokeSVG(data.strokes, i, 36)}</div>`)
+      .map((_, i) => `<div class="p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">${createProgressiveStrokeSVG(data.strokes, i, 36)}</div>`)
       .join('');
   } else {
     badgeEl.textContent = '?画';
@@ -162,10 +162,10 @@ function updateFreehandOutlines(char, charData) {
   const btn = $('btn-toggle-freehand-outline');
   if (btn) {
     if (showFreehandOutline) {
-      btn.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1.5 bg-red-50 text-red-800 border-red-200';
+      btn.className = 'px-3.5 py-1.5 rounded-full border text-xs font-semibold transition flex items-center gap-1.5 bg-[#e3ecf6] text-[#2d426d] border-[#c4dbf3]';
       btn.innerHTML = '👁️ Nét mờ: Bật';
     } else {
-      btn.className = 'px-3 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1.5 bg-slate-100 text-slate-500 border-slate-200';
+      btn.className = 'px-3.5 py-1.5 rounded-full border text-xs font-semibold transition flex items-center gap-1.5 bg-slate-100 text-slate-500 border-slate-200';
       btn.innerHTML = '👁️ Nét mờ: Tắt';
     }
   }
@@ -205,11 +205,11 @@ function setFreehandTool(tool) {
 
   if (penBtn && eraserBtn) {
     if (isPen) {
-      penBtn.className = 'tool-btn px-3 py-1.5 rounded-md bg-red-600 text-white font-semibold shadow-xs transition flex items-center gap-1.5';
-      eraserBtn.className = 'tool-btn px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+      penBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full bg-[#2d426d] text-white font-semibold shadow-xs transition flex items-center gap-1.5';
+      eraserBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
     } else {
-      eraserBtn.className = 'tool-btn px-3 py-1.5 rounded-md bg-red-600 text-white font-semibold shadow-xs transition flex items-center gap-1.5';
-      penBtn.className = 'tool-btn px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+      eraserBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full bg-[#2d426d] text-white font-semibold shadow-xs transition flex items-center gap-1.5';
+      penBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
     }
   }
 

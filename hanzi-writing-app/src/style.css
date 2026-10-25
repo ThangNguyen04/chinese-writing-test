@@ -1,26 +1,26 @@
-/* Ô chữ Điền (田字格) trên web - Theme Hanzii (Kẻ ô đỏ son truyền thống) */
+/* Ô chữ Điền (田字格) trên web - Theme Hanzii Xanh Navy */
 .tian-zi-ge-large {
   width: 220px;
   height: 220px;
-  border: 2px solid #ef4444;
+  border: 2px solid #2d426d;
   position: relative;
   background-color: #fff;
   background-image:
-    linear-gradient(to right, transparent 49.5%, #fca5a5 49.5%, #fca5a5 50.5%, transparent 50.5%),
-    linear-gradient(to bottom, transparent 49.5%, #fca5a5 49.5%, #fca5a5 50.5%, transparent 50.5%);
+    linear-gradient(to right, transparent 49.5%, #a0c1e1 49.5%, #a0c1e1 50.5%, transparent 50.5%),
+    linear-gradient(to bottom, transparent 49.5%, #a0c1e1 49.5%, #a0c1e1 50.5%, transparent 50.5%);
 }
 
 .tian-zi-ge-canvas {
   width: 140px;
   height: 140px;
-  border: 2px solid #ef4444;
+  border: 2px solid #2d426d;
   position: relative;
   background-color: #fff;
   background-image:
-    linear-gradient(to right, transparent 49%, #fca5a5 49%, #fca5a5 51%, transparent 51%),
-    linear-gradient(to bottom, transparent 49%, #fca5a5 49%, #fca5a5 51%, transparent 51%),
-    linear-gradient(45deg, transparent 49.2%, #fee2e2 49.2%, #fee2e2 50.8%, transparent 50.8%),
-    linear-gradient(-45deg, transparent 49.2%, #fee2e2 49.2%, #fee2e2 50.8%, transparent 50.8%);
+    linear-gradient(to right, transparent 49%, #a0c1e1 49%, #a0c1e1 51%, transparent 51%),
+    linear-gradient(to bottom, transparent 49%, #a0c1e1 49%, #a0c1e1 51%, transparent 51%),
+    linear-gradient(45deg, transparent 49.2%, #dce8f7 49.2%, #dce8f7 50.8%, transparent 50.8%),
+    linear-gradient(-45deg, transparent 49.2%, #dce8f7 49.2%, #dce8f7 50.8%, transparent 50.8%);
 }
 
 .freehand-canvas {
@@ -33,7 +33,7 @@
   cursor: cell;
 }
 
-/* =========== PDF (giống bài tập mẫu & vở tập viết chuẩn Hanzii) =========== */
+/* =========== PDF (giống bài tập mẫu & vở tập viết chuẩn Hanzii Navy) =========== */
 .pdf-page {
   width: 190mm;
   background: #fff;
@@ -42,25 +42,26 @@
 }
 
 .pdf-word-block {
-  border: 2px solid #dc2626;
+  border: 2px solid #2d426d;
   margin-bottom: 8px;
   page-break-inside: avoid;
 }
 
-.pdf-header-row { display: flex; border-bottom: 1.5px solid #dc2626; }
-.pdf-char-columns { display: flex; border-right: 1.5px solid #dc2626; }
-.pdf-char-col { width: 56px; display: flex; flex-direction: column; border-right: 1px solid #dc2626; }
+.pdf-header-row { display: flex; border-bottom: 1.5px solid #2d426d; }
+.pdf-char-columns { display: flex; border-right: 1.5px solid #2d426d; }
+.pdf-char-col { width: 56px; display: flex; flex-direction: column; border-right: 1px solid #2d426d; }
 .pdf-char-col:last-child { border-right: none; }
 
 .pdf-pinyin-cell {
   height: 24px;
-  border-bottom: 1px solid #dc2626;
+  border-bottom: 1px solid #2d426d;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: Arial, sans-serif;
   font-size: 13px;
-  color: #333;
+  color: #2d426d;
+  font-weight: 600;
 }
 
 .pdf-big-char-cell {
@@ -79,18 +80,18 @@
 }
 
 .pdf-stroke-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-height: 36px; }
-.pdf-stroke-count { font-family: Arial, sans-serif; font-size: 12px; font-weight: 600; margin-right: 6px; min-width: 34px; color: #dc2626; }
+.pdf-stroke-count { font-family: Arial, sans-serif; font-size: 12px; font-weight: 600; margin-right: 6px; min-width: 34px; color: #2d426d; }
 
 .pdf-grid-row {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  border-bottom: 1px solid #dc2626;
+  border-bottom: 1px solid #2d426d;
 }
 .pdf-grid-row:last-child { border-bottom: none; }
 
 .pdf-tian-cell {
   aspect-ratio: 1 / 1;
-  border-right: 1px solid #dc2626;
+  border-right: 1px solid #2d426d;
   position: relative;
   display: flex;
   align-items: center;
@@ -102,13 +103,13 @@
   content: "";
   position: absolute;
   top: 50%; left: 0; right: 0;
-  border-top: 1px dashed #fca5a5;
+  border-top: 1px dashed #a0c1e1;
   pointer-events: none;
 }
 .pdf-tian-cell::after {
   content: "";
   position: absolute;
   left: 50%; top: 0; bottom: 0;
-  border-left: 1px dashed #fca5a5;
+  border-left: 1px dashed #a0c1e1;
   pointer-events: none;
 }
