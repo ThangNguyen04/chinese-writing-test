@@ -102,9 +102,9 @@ export async function exportWorksheetToPDF(wordList, rowsPerWord = 2) {
         const cData = charDataList[charIdx];
         let innerSvg = "";
 
-        // Dòng đầu tiên: 6 ô đầu in chữ màu xanh mẫu, 2 ô tiếp theo in chữ mờ xám để đồ theo, các ô còn lại để trống
+        // Dòng đầu tiên: các ô đầu in chữ màu đỏ mẫu chuẩn, tiếp theo in chữ mờ xám để đồ theo, các ô còn lại để trống
         if (r === 0 && col < chars.length * 2) {
-          innerSvg = cData ? createFullCharSVG(cData.strokes, "#2563eb", 36) : "";
+          innerSvg = cData ? createFullCharSVG(cData.strokes, "#dc2626", 36) : "";
         } else if (r === 0 && col < chars.length * 3) {
           innerSvg = cData ? createFullCharSVG(cData.strokes, "#cbd5e1", 36) : "";
         }
