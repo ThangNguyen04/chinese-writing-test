@@ -1,205 +1,387 @@
 import './style.css';
+import { fetchCharData, createProgressiveStrokeSVG, exportWorksheetToPDF } from './pdfExport.js';
 
-// ==========================================
-// 2. KHỞI TẠO HANZI WRITER & UI
-// ==========================================
-let writer;
-let currentHanzi = '';
+const DEFAULT_WORDS = [
+  { chars: '年级', pinyin: 'nián jí', meaning: 'Năm học / Lớp' },
+  { chars: '暑假', pinyin: 'shǔ jià', meaning: 'Kỳ nghỉ hè' },
+  { chars: '请教', pinyin: 'qǐng jiào', meaning: 'Xin chỉ giáo' },
+  { chars: '学习', pinyin: 'xué xí', meaning: 'Học tập' }
+];
 
-function initHanziWriter(char) {
-  const container = document.getElementById('hanzi-character');
-  container.innerHTML = '';
-  writer = HanziWriter.create('hanzi-character', char, {
-    width: 300,
-    height: 300,
-    padding: 20,
-    showOutline: true,
-    strokeAnimationSpeed: 1.5,
-    delayBetweenStrokes: 150,
-    outlineColor: '#B0C4DE', // lightsteelblue
-    strokeColor: '#1e293b'
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+let words = JSON.parse(localStorage.getItem('hanzi_wordlist') || 'null') || DEFAULT_WORDS;
+let selected = new Set(words.map((_, i) => i)); // các từ được tick để xuất PDF
+let learnedChars = new Set(JSON.parse(localStorage.getItem('hanzi_learned') || '[]'));
+let currentWordIndex = 0;
+let currentCharIndex = 0;
+let writer = null;
+let showOutline = true;
+
+const saveWords = () => localStorage.setItem('hanzi_wordlist', JSON.stringify(words));
+
+// ---------- Danh sách từ ----------
+function renderWordList() {
+  const listEl = $('word-list');
+  listEl.innerHTML = '';
+
+  words.forEach((item, idx) => {
+    const active = idx === currentWordIndex;
+    const allLearned = Array.from(item.chars).every((c) => learnedChars.has(c));
+    const div = document.createElement('div');
+    div.className = `p-3 rounded-lg border cursor-pointer transition flex items-center gap-2 ${
+      active ? 'border-emerald-500 bg-emerald-50/70' : 'border-slate-200 hover:bg-slate-50'
+    }`;
+    div.innerHTML = `
+      <input type="checkbox" class="word-cb w-4 h-4 accent-emerald-600 flex-shrink-0" ${selected.has(idx) ? 'checked' : ''} title="Chọn để xuất PDF" />
+      <div class="flex-1 min-w-0 word-nav">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xl font-bold font-serif text-slate-800">${esc(item.chars)}</span>
+          <span class="text-xs font-medium text-emerald-600">${esc(item.pinyin)}</span>
+          ${allLearned ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">✓ Đã thuộc</span>' : ''}
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5 truncate" title="${esc(item.meaning)}">${esc(item.meaning)}</p>
+      </div>
+      <button class="btn-del text-slate-300 hover:text-rose-500 px-2 py-1 text-lg" title="Xóa từ">&times;</button>
+    `;
+
+    div.querySelector('.word-cb').addEventListener('change', (e) => {
+      if (e.target.checked) selected.add(idx);
+      else selected.delete(idx);
+      updateSelectAllBtn();
+    });
+    div.querySelector('.word-nav').addEventListener('click', () => selectWord(idx));
+    div.querySelector('.btn-del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (words.length <= 1) return;
+      words.splice(idx, 1);
+      selected = new Set([...selected].filter((i) => i !== idx).map((i) => (i > idx ? i - 1 : i)));
+      saveWords();
+      if (currentWordIndex >= words.length) currentWordIndex = 0;
+      selectWord(currentWordIndex);
+    });
+    listEl.appendChild(div);
   });
+
+  $('learned-counter').textContent = `Đã thuộc: ${learnedChars.size} chữ`;
+  updateSelectAllBtn();
 }
 
-// ==========================================
-// 3. TÌM KIẾM TỪ MONGODB & GEMINI FALLBACK
-// ==========================================
-async function translateWithAI(text) {
-  // Gọi tới API serverless của Vercel thay vì gọi Google API trực tiếp
-  const response = await fetch('/api/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text })
-  });
+function updateSelectAllBtn() {
+  const all = words.length > 0 && words.every((_, i) => selected.has(i));
+  $('btn-select-all').textContent = all ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
+}
 
-  if (!response.ok) {
-    throw new Error("Lỗi API Backend");
+function addWordToTop(word) {
+  const dup = words.findIndex((w) => w.chars === word.chars);
+  if (dup !== -1) {
+    words.splice(dup, 1);
+    selected = new Set([...selected].filter((i) => i !== dup).map((i) => (i > dup ? i - 1 : i)));
   }
-
-  // Kết quả trả về đã được format sẵn là JSON chứa hanzi, pinyin, meaning
-  return await response.json();
+  words.unshift(word);
+  selected = new Set([0, ...[...selected].map((i) => i + 1)]);
+  saveWords();
+  selectWord(0);
 }
 
-async function searchDictionary(keyword) {
-  try {
-    // Gọi tới API backend Vercel của bạn (ví dụ: api/search.js truy vấn tới MongoDB URL bạn đã cung cấp)
-    const res = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.hanzi) return data;
+// ---------- Khu vực viết ----------
+function selectWord(index) {
+  currentWordIndex = index;
+  currentCharIndex = 0;
+  const word = words[index];
+  $('current-word-title').textContent = word.chars;
+  $('current-word-pinyin').textContent = word.pinyin;
+  $('current-word-meaning').textContent = word.meaning;
+  renderCharSelector();
+  renderWordList();
+  loadCharacterIntoWriter(Array.from(word.chars)[0]);
+  clearAllCanvases();
+}
+
+function renderCharSelector() {
+  const el = $('char-selector');
+  el.innerHTML = '';
+  Array.from(words[currentWordIndex].chars).forEach((ch, idx) => {
+    const btn = document.createElement('button');
+    btn.className = `w-9 h-9 rounded-lg font-serif text-lg font-bold border transition ${
+      idx === currentCharIndex
+        ? 'bg-emerald-600 text-white border-emerald-600'
+        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+    }`;
+    btn.textContent = ch;
+    btn.addEventListener('click', () => {
+      currentCharIndex = idx;
+      renderCharSelector();
+      loadCharacterIntoWriter(ch);
+    });
+    el.appendChild(btn);
+  });
+}
+
+async function loadCharacterIntoWriter(char) {
+  $('hanzi-target').innerHTML = '';
+  $('quiz-feedback').textContent = '';
+
+  writer = window.HanziWriter.create('hanzi-target', char, {
+    width: 220,
+    height: 220,
+    padding: 15,
+    showOutline,
+    strokeAnimationSpeed: 1.2,
+    delayBetweenStrokes: 250,
+    strokeColor: '#0f172a',
+    radicalColor: '#1f8a8c',
+    outlineColor: '#cbd5e1',
+    drawingWidth: 22
+  });
+
+  const previewEl = $('stroke-order-preview');
+  const badgeEl = $('stroke-count-badge');
+  previewEl.innerHTML = '<span class="text-xs text-slate-400">Đang tải thứ tự nét...</span>';
+
+  const data = await fetchCharData(char);
+  if (data && data.strokes) {
+    badgeEl.textContent = `${data.strokes.length}画 (Nét)`;
+    previewEl.innerHTML = data.strokes
+      .map((_, i) => `<div class="p-1 bg-white border border-slate-200 rounded">${createProgressiveStrokeSVG(data.strokes, i, 36)}</div>`)
+      .join('');
+  } else {
+    badgeEl.textContent = '?画';
+    previewEl.innerHTML = '<span class="text-xs text-rose-500">Không tìm thấy dữ liệu nét chữ này.</span>';
+  }
+}
+
+// ---------- 4 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint) ----------
+let currentFreehandTool = 'pen'; // 'pen' | 'eraser'
+
+function setFreehandTool(tool) {
+  currentFreehandTool = tool;
+  const isPen = tool === 'pen';
+
+  const penBtn = $('tool-pen');
+  const eraserBtn = $('tool-eraser');
+
+  if (penBtn && eraserBtn) {
+    if (isPen) {
+      penBtn.className = 'tool-btn px-3 py-1.5 rounded-md bg-emerald-600 text-white font-semibold shadow-xs transition flex items-center gap-1.5';
+      eraserBtn.className = 'tool-btn px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+    } else {
+      eraserBtn.className = 'tool-btn px-3 py-1.5 rounded-md bg-emerald-600 text-white font-semibold shadow-xs transition flex items-center gap-1.5';
+      penBtn.className = 'tool-btn px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
     }
-  } catch (error) {
-    console.warn("Không tìm thấy trong MongoDB, đang dùng Gemini Fallback...");
   }
-  
-  // Fallback dùng Gemini API
-  return await translateWithAI(keyword);
+
+  document.querySelectorAll('.freehand-canvas').forEach((canvas) => {
+    if (isPen) canvas.classList.remove('eraser-mode');
+    else canvas.classList.add('eraser-mode');
+  });
 }
 
-document.getElementById('search-btn').addEventListener('click', async () => {
-  const keyword = document.getElementById('search-input').value.trim();
-  if (!keyword) return;
+function initFreehandCanvases() {
+  document.querySelectorAll('.freehand-canvas').forEach((canvas) => {
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
 
-  document.getElementById('char-display').innerText = "⏳...";
-  try {
-    const result = await searchDictionary(keyword);
-    document.getElementById('char-display').innerText = result.hanzi;
-    document.getElementById('pinyin-display').innerText = `Pinyin: ${result.pinyin}`;
-    document.getElementById('meaning-display').innerText = `Nghĩa: ${result.meaning}`;
-    currentHanzi = result.hanzi;
-    initHanziWriter(result.hanzi.charAt(0));
-  } catch (err) {
-    alert("Không thể tìm kiếm từ này.");
-  }
-});
+    const pos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      return {
+        x: (p.clientX - r.left) * (canvas.width / r.width),
+        y: (p.clientY - r.top) * (canvas.height / r.height)
+      };
+    };
 
-// Nút tương tác HanziWriter
-document.getElementById('animate-btn').addEventListener('click', () => { if (writer) writer.animateCharacter(); });
-document.getElementById('quiz-btn').addEventListener('click', () => { if (writer) writer.quiz(); });
+    const start = (e) => {
+      e.preventDefault();
+      drawing = true;
+      const p = pos(e);
 
-// ==========================================
-// 4. CANVAS: TÍNH NĂNG XÓA THEO NÉT BÚT
-// ==========================================
-const canvas = document.getElementById('freehand-canvas');
-const ctx = canvas.getContext('2d');
-let strokes = []; 
-let currentStroke = [];
-let isDrawing = false;
-let currentTool = 'pen'; // 'pen' | 'eraser'
-const ERASER_RADIUS = 15;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
 
-function redrawAllStrokes() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#1e293b';
-  ctx.lineWidth = 4;
+      if (currentFreehandTool === 'eraser') {
+        // Chế độ gôm tẩy giống Paint: xóa pixel mực đã vẽ về trong suốt, để lộ lưới chữ Điền phía sau
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 18;
+      } else {
+        // Chế độ bút mực thông thường
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 4;
+      }
 
-  strokes.forEach(stroke => {
-    if (stroke.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    };
+
+    const move = (e) => {
+      if (!drawing) return;
+      e.preventDefault();
+      const p = pos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    };
+
+    const end = (e) => {
+      if (!drawing) return;
+      drawing = false;
+      ctx.beginPath();
+    };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    canvas.addEventListener('touchend', end);
+    canvas.addEventListener('touchcancel', end);
+  });
+}
+
+function clearAllCanvases() {
+  document.querySelectorAll('.freehand-canvas').forEach((c) => {
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, c.width, c.height);
     ctx.beginPath();
-    ctx.moveTo(stroke[0].x, stroke[0].y);
-    for (let i = 1; i < stroke.length; i++) {
-      ctx.lineTo(stroke[i].x, stroke[i].y);
-    }
-    ctx.stroke();
   });
 }
 
-function isStrokeHit(stroke, x, y) {
-  for (let i = 0; i < stroke.length; i++) {
-    const dx = stroke[i].x - x;
-    const dy = stroke[i].y - y;
-    if (Math.hypot(dx, dy) <= ERASER_RADIUS) return true;
-  }
-  return false;
-}
-
-function eraseStrokeAt(x, y) {
-  const initialLength = strokes.length;
-  strokes = strokes.filter(stroke => !isStrokeHit(stroke, x, y));
-  if (strokes.length !== initialLength) redrawAllStrokes();
-}
-
-function getPointerPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+// ---------- Tra cứu: tiếng Việt -> AI (chuẩn nhất), chữ Hán -> MongoDB; có dự phòng chéo ----------
+async function searchMongo(keyword, script) {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(keyword)}`);
+  if (!res.ok) return null;
+  const d = await res.json();
+  if (!d || !d.hanzi) return null;
   return {
-    x: (clientX - rect.left) * (canvas.width / rect.width),
-    y: (clientY - rect.top) * (canvas.height / rect.height)
+    chars: (script === 'traditional' && d.hanzi_tw ? d.hanzi_tw : d.hanzi).trim(),
+    pinyin: (d.pinyin || '').trim(),
+    meaning: (d.meaning || keyword).trim()
   };
 }
 
-function startDrawing(e) {
-  e.preventDefault();
-  isDrawing = true;
-  const pos = getPointerPos(e);
-  if (currentTool === 'eraser') {
-    eraseStrokeAt(pos.x, pos.y);
-  } else {
-    currentStroke = [pos];
-    ctx.beginPath();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 4;
-    ctx.moveTo(pos.x, pos.y);
+async function translateAI(keyword, script) {
+  const res = await fetch('/api/translate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: keyword, script })
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok || !d.hanzi) throw new Error(d.error || 'Không dịch được từ này');
+  return { chars: d.hanzi.trim(), pinyin: (d.pinyin || '').trim(), meaning: (d.meaning || keyword).trim() };
+}
+
+// Luôn ưu tiên từ điển MongoDB trước; không có kết quả khớp (hoặc lỗi) thì mới dùng AI dịch
+async function lookup(keyword, script) {
+  try {
+    const r = await searchMongo(keyword, script);
+    if (r) return r;
+  } catch (e) {
+    console.warn('MongoDB lỗi, chuyển sang AI:', e);
+  }
+  return translateAI(keyword, script);
+}
+
+async function handleSearch() {
+  const keyword = $('search-input').value.trim();
+  if (!keyword) return;
+  const script = document.querySelector('input[name="script-type"]:checked').value;
+  const status = $('ai-status');
+  status.textContent = '⚡ Đang tra cứu...';
+  status.classList.remove('hidden');
+  try {
+    addWordToTop(await lookup(keyword, script));
+    $('search-input').value = '';
+  } catch (err) {
+    alert('Lỗi tra cứu / dịch:\n' + err.message);
+  } finally {
+    status.classList.add('hidden');
   }
 }
 
-function draw(e) {
-  if (!isDrawing) return;
-  e.preventDefault();
-  const pos = getPointerPos(e);
-  if (currentTool === 'eraser') {
-    eraseStrokeAt(pos.x, pos.y);
-  } else {
-    currentStroke.push(pos);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  }
-}
+// ---------- Sự kiện ----------
+function bindEvents() {
+  $('btn-animate').addEventListener('click', () => writer && writer.animateCharacter());
 
-function stopDrawing() {
-  if (!isDrawing) return;
-  isDrawing = false;
-  if (currentTool === 'pen' && currentStroke.length > 0) {
-    strokes.push(currentStroke);
-    currentStroke = [];
-  }
-}
+  $('btn-quiz').addEventListener('click', () => {
+    if (!writer) return;
+    const ch = Array.from(words[currentWordIndex].chars)[currentCharIndex];
+    const fb = $('quiz-feedback');
+    fb.textContent = 'Hãy dùng bút/tay viết từng nét vào ô bên trên...';
+    writer.quiz({
+      onMistake: (s) => { fb.textContent = `Sai nét thứ ${s.strokeNum + 1}! Hãy thử lại.`; },
+      onCorrectStroke: (s) => { fb.textContent = `Chính xác nét ${s.strokeNum + 1}!`; },
+      onComplete: (s) => {
+        fb.textContent = `🎉 Tuyệt vời! Hoàn thành chữ "${ch}" (Sai ${s.totalMistakes} lần).`;
+        learnedChars.add(ch);
+        localStorage.setItem('hanzi_learned', JSON.stringify([...learnedChars]));
+        renderWordList();
+      }
+    });
+  });
 
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-window.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('touchstart', startDrawing, { passive: false });
-canvas.addEventListener('touchmove', draw, { passive: false });
-window.addEventListener('touchend', stopDrawing);
+  $('btn-toggle-outline').addEventListener('click', () => {
+    if (!writer) return;
+    showOutline = !showOutline;
+    showOutline ? writer.showOutline() : writer.hideOutline();
+  });
 
-// Các nút điều khiển Canvas
-document.querySelectorAll('.tool-btn').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const tool = e.target.getAttribute('data-tool');
-    if (tool === 'pen' || tool === 'eraser') {
-      currentTool = tool;
-      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-      e.target.classList.add('active');
-    } else if (e.target.id === 'undo-btn') {
-      strokes.pop();
-      redrawAllStrokes();
-    } else if (e.target.id === 'clear-btn') {
-      strokes = [];
-      redrawAllStrokes();
+  $('btn-clear-canvas').addEventListener('click', clearAllCanvases);
+
+  // Bộ công cụ vẽ: Bút viết & Gôm tẩy
+  $('tool-pen')?.addEventListener('click', () => setFreehandTool('pen'));
+  $('tool-eraser')?.addEventListener('click', () => setFreehandTool('eraser'));
+
+  $('search-btn').addEventListener('click', handleSearch);
+  $('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleSearch(); });
+
+  $('btn-select-all').addEventListener('click', () => {
+    const all = words.every((_, i) => selected.has(i));
+    selected = all ? new Set() : new Set(words.map((_, i) => i));
+    renderWordList();
+  });
+
+  $('btn-add-manual').addEventListener('click', () => {
+    const chars = $('manual-hanzi').value.trim();
+    if (!chars) return alert('Vui lòng nhập chữ Hán!');
+    words.push({
+      chars,
+      pinyin: $('manual-pinyin').value.trim(),
+      meaning: $('manual-meaning').value.trim() || 'Từ tự thêm'
+    });
+    selected.add(words.length - 1);
+    saveWords();
+    selectWord(words.length - 1);
+    ['manual-hanzi', 'manual-pinyin', 'manual-meaning'].forEach((id) => { $(id).value = ''; });
+  });
+
+  const rowsEl = $('pdf-rows');
+  rowsEl.value = localStorage.getItem('pdf_rows') || '2';
+  rowsEl.addEventListener('change', () => localStorage.setItem('pdf_rows', rowsEl.value));
+
+  $('btn-export-pdf').addEventListener('click', async () => {
+    const list = words.filter((_, i) => selected.has(i));
+    if (!list.length) return alert('Vui lòng tick chọn ít nhất một từ để xuất PDF!');
+    const btn = $('btn-export-pdf');
+    const original = btn.innerHTML;
+    btn.innerHTML = '⏳ Đang tạo PDF...';
+    btn.disabled = true;
+    try {
+      await exportWorksheetToPDF(list, parseInt(rowsEl.value, 10) || 2);
+    } catch (err) {
+      alert('Không thể xuất PDF: ' + err.message);
+    } finally {
+      btn.innerHTML = original;
+      btn.disabled = false;
     }
   });
-});
+}
 
-// ==========================================
-// 5. XUẤT PDF (html2pdf)
-// ==========================================
-document.getElementById('export-pdf-btn').addEventListener('click', () => {
-  const rows = document.getElementById('practice-rows-select').value;
-  alert(`Bắt đầu tạo PDF với ${rows} dòng luyện tập cho chữ ${currentHanzi || 'chưa chọn'}. (Cần triển khai logic render HTML lưới tại đây để html2pdf chụp)`);
-  // Gọi html2pdf logic của bạn ở đây
-});
+renderWordList();
+selectWord(0);
+initFreehandCanvases();
+bindEvents();

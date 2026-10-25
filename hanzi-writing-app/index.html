@@ -1,86 +1,183 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Hiểu Chữ Hán - Luyện Viết</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hanzi Master - Luyện viết tiếng Trung</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Theme xanh ngọc nhạt (xanh lá pha xanh dương): ghi đè bảng màu "emerald" và "blue"
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emerald: {
+              50: '#effcfb', 100: '#d3f5f2', 200: '#a8e9e4', 300: '#78dad3', 400: '#4ec8c2',
+              500: '#32b5b2', 600: '#28a4a6', 700: '#1f8a8c', 800: '#1b6f72'
+            },
+            blue: {
+              50: '#eff9fc', 100: '#d6eff7', 500: '#38aecf', 600: '#2a9cc0', 700: '#2283a3'
+            }
+          }
+        }
+      }
+    };
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
-<body>
-  <div class="app-container">
-    <header class="header">
-      <h1>Học & Luyện Viết Chữ Hán</h1>
-      <p>Từ điển Trung – Hán Việt, tra nghĩa & học chữ</p>
-    </header>
+<body class="bg-emerald-50/60 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Thẻ 1: Tra cứu -->
-    <main class="main-content">
-      <section class="card search-section">
-        <div class="search-box">
-          <input type="text" id="search-input" placeholder="Nhập từ tiếng Việt hoặc chữ Hán...">
-          <button id="search-btn" class="btn-primary">Tra cứu</button>
+  <!-- Header -->
+  <header class="bg-emerald-600 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl font-serif bg-white text-emerald-600 w-10 h-10 rounded-lg flex items-center justify-center font-bold shadow">字</span>
+        <div>
+          <h1 class="text-xl font-bold leading-tight">Hanzi Master</h1>
+          <p class="text-xs text-emerald-100">Luyện viết tiếng Trung trên iPad &amp; Xuất PDF</p>
         </div>
-        <div id="search-result" class="result-box">
-          <h2 id="char-display">-</h2>
-          <div class="result-details">
-            <p id="pinyin-display"><strong>Pinyin:</strong> -</p>
-            <p id="meaning-display"><strong>Nghĩa:</strong> -</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="pdf-rows" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm border border-emerald-500 cursor-pointer" title="Số dòng tập viết mỗi từ">
+          <option value="1">1 dòng</option>
+          <option value="2" selected>2 dòng</option>
+          <option value="3">3 dòng</option>
+          <option value="4">4 dòng</option>
+          <option value="5">5 dòng</option>
+          <option value="6">6 dòng</option>
+          <option value="8">8 dòng</option>
+          <option value="10">10 dòng</option>
+        </select>
+        <button id="btn-export-pdf" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow flex items-center gap-2 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          Xuất PDF Luyện Viết
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Thanh tìm kiếm -->
+  <section class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-2 items-center">
+      <input id="search-input" type="text" placeholder="Nhập tiếng Việt, Pinyin hoặc chữ Hán (VD: gia đình, jiating, 家庭)..." class="flex-1 min-w-[240px] px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm" />
+      <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 text-xs font-medium">
+        <label class="cursor-pointer px-2 py-1.5 rounded-md text-slate-600 has-[:checked]:bg-emerald-600 has-[:checked]:text-white transition">
+          <input type="radio" name="script-type" value="simplified" class="sr-only" checked /> 简 Giản thể
+        </label>
+        <label class="cursor-pointer px-2 py-1.5 rounded-md text-slate-600 has-[:checked]:bg-emerald-600 has-[:checked]:text-white transition">
+          <input type="radio" name="script-type" value="traditional" class="sr-only" /> 繁 Phồn thể
+        </label>
+      </div>
+      <button id="search-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition">🔍 Dịch &amp; Tạo chữ (AI)</button>
+      <span id="ai-status" class="text-xs text-slate-500 hidden">Đang tra cứu...</span>
+    </div>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+
+    <!-- Cột trái: danh sách từ -->
+    <aside class="lg:col-span-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between self-start">
+      <div>
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-bold text-slate-700">📚 Danh sách từ vựng</h2>
+          <span id="learned-counter" class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-semibold">Đã thuộc: 0 chữ</span>
+        </div>
+        <div class="flex justify-between items-center mb-3 gap-2">
+          <p class="text-xs text-slate-500">Tick chọn từ để xuất PDF. Bấm vào từ để luyện viết.</p>
+          <button id="btn-select-all" class="text-xs text-emerald-600 hover:underline font-medium whitespace-nowrap">Chọn tất cả</button>
+        </div>
+        <div id="word-list" class="space-y-2 max-h-[420px] overflow-y-auto pr-1"></div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-100">
+        <p class="text-xs font-semibold text-slate-500 mb-2">Thêm từ thủ công vào danh sách:</p>
+        <div class="grid grid-cols-3 gap-2 mb-2">
+          <input id="manual-hanzi" type="text" placeholder="Chữ Hán (年级)" class="px-2.5 py-1.5 border rounded text-sm min-w-0" />
+          <input id="manual-pinyin" type="text" placeholder="Pinyin (nián jí)" class="px-2.5 py-1.5 border rounded text-sm min-w-0" />
+          <input id="manual-meaning" type="text" placeholder="Nghĩa (Năm học)" class="px-2.5 py-1.5 border rounded text-sm min-w-0" />
+        </div>
+        <button id="btn-add-manual" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded text-xs font-semibold transition">+ Thêm vào danh sách</button>
+      </div>
+    </aside>
+
+    <!-- Cột phải -->
+    <section class="lg:col-span-8 space-y-6">
+
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-wrap justify-between items-start gap-4 mb-4">
+          <div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <h2 id="current-word-title" class="text-2xl font-bold text-slate-800">-</h2>
+              <span id="current-word-pinyin" class="text-lg text-emerald-600 font-medium"></span>
+              <span id="current-word-meaning" class="text-sm text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded"></span>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="text-xs text-slate-500">Chọn chữ để viết:</span>
+              <div id="char-selector" class="flex gap-1.5"></div>
+            </div>
           </div>
         </div>
-      </section>
 
-      <!-- Thẻ 2: Hướng dẫn viết -->
-      <section class="card hanzi-section">
-        <div class="card-header">
-          <h3>Hướng dẫn viết</h3>
-          <div class="hanzi-controls">
-            <button id="animate-btn" class="btn-secondary">▶ Mô phỏng</button>
-            <button id="quiz-btn" class="btn-secondary">✍️ Kiểm tra</button>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button id="btn-animate" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">▶️ Xem nét mẫu</button>
+          <button id="btn-quiz" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">✍️ Tự viết (Chấm điểm)</button>
+          <button id="btn-toggle-outline" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm transition">👁️ Ẩn/Hiện nét mờ</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          <div class="md:col-span-5 flex flex-col items-center">
+            <div class="tian-zi-ge-large rounded-lg"><div id="hanzi-target" style="width:220px;height:220px"></div></div>
+            <p id="quiz-feedback" class="text-sm font-medium text-emerald-600 mt-2 min-h-[20px] text-center"></p>
+          </div>
+          <div class="md:col-span-7 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Thứ tự từng nét (Stroke Order)</span>
+              <span id="stroke-count-badge" class="text-xs font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">0画 (Nét)</span>
+            </div>
+            <div id="stroke-order-preview" class="flex flex-wrap gap-2 items-center min-h-[120px] py-2"></div>
           </div>
         </div>
-        <div id="hanzi-character" class="hanzi-grid-box"></div>
-      </section>
+      </div>
 
-      <!-- Thẻ 3: Bảng nháp tự do -->
-      <section class="card practice-section">
-        <div class="card-header">
-          <h3>Luyện viết tự do</h3>
-          <div class="canvas-tools">
-            <button class="tool-btn active" data-tool="pen">✏️ Bút</button>
-            <button class="tool-btn" data-tool="eraser">🧹 Xóa nét</button>
-            <button class="tool-btn" id="undo-btn">↩️ Undo</button>
-            <button class="tool-btn" id="clear-btn">🗑️ Clear</button>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-3">
+          <div>
+            <h3 class="font-bold text-slate-800">🎨 Luyện viết tự do (Không nét mờ)</h3>
+            <p class="text-xs text-slate-500">Dùng Apple Pencil, ngón tay hoặc chuột tự viết lại chữ vào 4 ô chữ Điền (田字格) bên dưới.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Bộ chọn công cụ: Bút viết / Gôm tẩy giống Paint -->
+            <div class="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium">
+              <button id="tool-pen" type="button" class="tool-btn px-3 py-1.5 rounded-md bg-emerald-600 text-white font-semibold shadow-xs transition flex items-center gap-1.5">
+                ✏️ Bút viết
+              </button>
+              <button id="tool-eraser" type="button" class="tool-btn px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5">
+                🧹 Gôm tẩy
+              </button>
+            </div>
+            <button id="btn-clear-canvas" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap">
+              🗑️ Xóa hết
+            </button>
           </div>
         </div>
-        <div class="canvas-wrapper">
-          <canvas id="freehand-canvas" class="hanzi-grid-box" width="300" height="300"></canvas>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center">
+          <div class="tian-zi-ge-canvas"><canvas class="freehand-canvas" width="140" height="140"></canvas></div>
+          <div class="tian-zi-ge-canvas"><canvas class="freehand-canvas" width="140" height="140"></canvas></div>
+          <div class="tian-zi-ge-canvas"><canvas class="freehand-canvas" width="140" height="140"></canvas></div>
+          <div class="tian-zi-ge-canvas"><canvas class="freehand-canvas" width="140" height="140"></canvas></div>
         </div>
-      </section>
+      </div>
+    </section>
+  </main>
 
-      <!-- Thẻ 4: Xuất PDF -->
-      <section class="card export-section">
-        <div class="export-controls">
-          <label for="practice-rows-select">Số dòng bài tập:</label>
-          <select id="practice-rows-select">
-            <option value="1">1 dòng</option>
-            <option value="2">2 dòng</option>
-            <option value="3" selected>3 dòng</option>
-            <option value="4">4 dòng</option>
-            <option value="5">5 dòng</option>
-            <option value="6">6 dòng</option>
-            <option value="7">7 dòng</option>
-            <option value="8">8 dòng</option>
-            <option value="9">9 dòng</option>
-            <option value="10">10 dòng</option>
-          </select>
-        </div>
-        <button id="export-pdf-btn" class="btn-primary w-full">📥 Tải Worksheet (PDF)</button>
-      </section>
-    </main>
+  <!-- Container ẩn render PDF -->
+  <div style="position:absolute;left:-9999px;top:0;">
+    <div id="pdf-sheet" class="pdf-page"></div>
   </div>
-  <!-- Nếu dùng Vite, hãy import app.js ở đây như module -->
-  <script type="module" src="app.js"></script> 
+
+  <script type="module" src="/src/app.js"></script>
 </body>
+</html>
+
 </html>

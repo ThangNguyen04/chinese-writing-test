@@ -2,6 +2,7 @@
   "name": "hanzi-writing-app",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Ứng dụng web học viết chữ Hán tương tác trên iPad/Touchscreen, tích hợp Gemini AI, Firebase và xuất PDF luyện viết.",
   "scripts": {
     "dev": "vite",
@@ -10,7 +11,8 @@
   },
   "dependencies": {
     "firebase": "^13.0.0",
-    "hanzi-writer": "^3.5.0"
+    "hanzi-writer": "^3.5.0",
+    "mongodb": "^7.7.0"
   },
   "devDependencies": {
     "vite": "^6.4.4"

@@ -1,4 +1,9 @@
 {
+  "name": "chinese-writing-test",
+  "scripts": {
+    "dev": "npm --prefix hanzi-writing-app run dev",
+    "build": "npm --prefix hanzi-writing-app run build"
+  },
   "dependencies": {
     "mongodb": "^7.7.0"
   }
