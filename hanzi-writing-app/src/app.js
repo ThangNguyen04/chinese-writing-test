@@ -124,6 +124,9 @@ function renderCharSelector() {
 async function loadCharacterIntoWriter(char) {
   $('hanzi-target').innerHTML = '';
   $('quiz-feedback').textContent = '';
+  freehandUndoStack = [];
+  freehandRedoStack = [];
+  updateFreehandUndoRedoBtns();
 
   writer = window.HanziWriter.create('hanzi-target', char, {
     width: 220,
@@ -162,11 +165,11 @@ function updateFreehandOutlines(char, charData) {
   const btn = $('btn-toggle-freehand-outline');
   if (btn) {
     if (showFreehandOutline) {
-      btn.className = 'px-3.5 py-1.5 rounded-full border text-xs font-semibold transition flex items-center gap-1.5 bg-[#e3ecf6] text-[#2d426d] border-[#c4dbf3]';
-      btn.innerHTML = '👁️ Nét mờ: Bật';
+      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#e3ecf6] text-[#2d426d] hover:bg-[#d6e4f3] transition active:scale-95 text-base';
+      btn.title = 'Nét mờ: Đang Bật (Bấm để Tắt)';
     } else {
-      btn.className = 'px-3.5 py-1.5 rounded-full border text-xs font-semibold transition flex items-center gap-1.5 bg-slate-100 text-slate-500 border-slate-200';
-      btn.innerHTML = '👁️ Nét mờ: Tắt';
+      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 hover:bg-slate-200/60 transition active:scale-95 text-base';
+      btn.title = 'Nét mờ: Đang Tắt (Bấm để Bật)';
     }
   }
 
@@ -193,8 +196,57 @@ function updateFreehandOutlines(char, charData) {
   });
 }
 
-// ---------- 8 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint) ----------
+// ---------- 8 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint, hỗ trợ Undo / Redo) ----------
 let currentFreehandTool = 'pen'; // 'pen' | 'eraser'
+let freehandUndoStack = [];
+let freehandRedoStack = [];
+const MAX_UNDO_STEPS = 40;
+
+function updateFreehandUndoRedoBtns() {
+  const undoBtn = $('btn-undo-freehand');
+  const redoBtn = $('btn-redo-freehand');
+  if (undoBtn) undoBtn.disabled = freehandUndoStack.length === 0;
+  if (redoBtn) redoBtn.disabled = freehandRedoStack.length === 0;
+}
+
+function undoFreehand() {
+  if (freehandUndoStack.length === 0) return;
+  const action = freehandUndoStack.pop();
+  const canvases = Array.from(document.querySelectorAll('.freehand-canvas'));
+
+  if (action.type === 'clear') {
+    action.allCanvases.forEach(({ canvasIdx, data }) => {
+      const c = canvases[canvasIdx];
+      if (c) c.getContext('2d').putImageData(data, 0, 0);
+    });
+  } else if (action.type === 'stroke') {
+    const c = canvases[action.canvasIdx];
+    if (c) c.getContext('2d').putImageData(action.before, 0, 0);
+  }
+
+  freehandRedoStack.push(action);
+  updateFreehandUndoRedoBtns();
+}
+
+function redoFreehand() {
+  if (freehandRedoStack.length === 0) return;
+  const action = freehandRedoStack.pop();
+  const canvases = Array.from(document.querySelectorAll('.freehand-canvas'));
+
+  if (action.type === 'clear') {
+    canvases.forEach((c) => {
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      ctx.beginPath();
+    });
+  } else if (action.type === 'stroke') {
+    const c = canvases[action.canvasIdx];
+    if (c) c.getContext('2d').putImageData(action.after, 0, 0);
+  }
+
+  freehandUndoStack.push(action);
+  updateFreehandUndoRedoBtns();
+}
 
 function setFreehandTool(tool) {
   currentFreehandTool = tool;
@@ -205,11 +257,11 @@ function setFreehandTool(tool) {
 
   if (penBtn && eraserBtn) {
     if (isPen) {
-      penBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full bg-[#2d426d] text-white font-semibold shadow-xs transition flex items-center gap-1.5';
-      eraserBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] text-white shadow-xs transition active:scale-95 text-base';
+      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition active:scale-95 text-base';
     } else {
-      eraserBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full bg-[#2d426d] text-white font-semibold shadow-xs transition flex items-center gap-1.5';
-      penBtn.className = 'tool-btn px-3.5 py-1.5 rounded-full text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5';
+      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] text-white shadow-xs transition active:scale-95 text-base';
+      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition active:scale-95 text-base';
     }
   }
 
@@ -220,9 +272,12 @@ function setFreehandTool(tool) {
 }
 
 function initFreehandCanvases() {
-  document.querySelectorAll('.freehand-canvas').forEach((canvas) => {
+  const canvases = Array.from(document.querySelectorAll('.freehand-canvas'));
+  canvases.forEach((canvas, canvasIdx) => {
     const ctx = canvas.getContext('2d');
     let drawing = false;
+    let strokeDrawn = false;
+    let beforeData = null;
 
     const pos = (e) => {
       const r = canvas.getBoundingClientRect();
@@ -236,8 +291,10 @@ function initFreehandCanvases() {
     const start = (e) => {
       e.preventDefault();
       drawing = true;
-      const p = pos(e);
+      strokeDrawn = false;
+      beforeData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
+      const p = pos(e);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
@@ -256,6 +313,7 @@ function initFreehandCanvases() {
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
+      strokeDrawn = true;
     };
 
     const move = (e) => {
@@ -264,12 +322,29 @@ function initFreehandCanvases() {
       const p = pos(e);
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
+      strokeDrawn = true;
     };
 
     const end = (e) => {
       if (!drawing) return;
       drawing = false;
       ctx.beginPath();
+
+      if (strokeDrawn && beforeData) {
+        const afterData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        freehandUndoStack.push({
+          type: 'stroke',
+          canvasIdx,
+          before: beforeData,
+          after: afterData
+        });
+        if (freehandUndoStack.length > MAX_UNDO_STEPS) {
+          freehandUndoStack.shift();
+        }
+        freehandRedoStack = [];
+        updateFreehandUndoRedoBtns();
+      }
+      beforeData = null;
     };
 
     canvas.addEventListener('mousedown', start);
@@ -282,10 +357,35 @@ function initFreehandCanvases() {
     canvas.addEventListener('touchend', end);
     canvas.addEventListener('touchcancel', end);
   });
+
+  updateFreehandUndoRedoBtns();
 }
 
-function clearAllCanvases() {
-  document.querySelectorAll('.freehand-canvas').forEach((c) => {
+function clearAllCanvases(recordHistory = true) {
+  const canvases = Array.from(document.querySelectorAll('.freehand-canvas'));
+
+  if (recordHistory) {
+    const snapshot = canvases.map((c, canvasIdx) => ({
+      canvasIdx,
+      data: c.getContext('2d').getImageData(0, 0, c.width, c.height)
+    }));
+    const hasContent = snapshot.some((s) => {
+      const d = s.data.data;
+      for (let i = 3; i < d.length; i += 4) {
+        if (d[i] > 0) return true;
+      }
+      return false;
+    });
+
+    if (hasContent) {
+      freehandUndoStack.push({ type: 'clear', allCanvases: snapshot });
+      if (freehandUndoStack.length > MAX_UNDO_STEPS) freehandUndoStack.shift();
+      freehandRedoStack = [];
+      updateFreehandUndoRedoBtns();
+    }
+  }
+
+  canvases.forEach((c) => {
     const ctx = c.getContext('2d');
     ctx.clearRect(0, 0, c.width, c.height);
     ctx.beginPath();
@@ -371,13 +471,17 @@ function bindEvents() {
     showOutline ? writer.showOutline() : writer.hideOutline();
   });
 
-  $('btn-clear-canvas').addEventListener('click', clearAllCanvases);
+  $('btn-clear-canvas').addEventListener('click', () => clearAllCanvases(true));
 
   // Bộ công cụ vẽ: Bút viết & Gôm tẩy
   $('tool-pen')?.addEventListener('click', () => setFreehandTool('pen'));
   $('tool-eraser')?.addEventListener('click', () => setFreehandTool('eraser'));
 
-  // Bật/tắt nét mờ trong 4 ô luyện viết tự do
+  // Undo / Redo cho 8 ô luyện viết tự do
+  $('btn-undo-freehand')?.addEventListener('click', undoFreehand);
+  $('btn-redo-freehand')?.addEventListener('click', redoFreehand);
+
+  // Bật/tắt nét mờ trong 8 ô luyện viết tự do
   $('btn-toggle-freehand-outline')?.addEventListener('click', () => {
     showFreehandOutline = !showFreehandOutline;
     const char = Array.from(words[currentWordIndex]?.chars || '')[currentCharIndex] || '';
