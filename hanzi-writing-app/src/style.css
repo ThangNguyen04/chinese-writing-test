@@ -1,4 +1,15 @@
 /* Ô chữ Điền (田字格) trên web - Theme Hanzii Xanh Navy */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Sans+Viet:wght@400;700&display=swap');
+
+/* PDF meaning Vietnamese text styling */
+.pdf-meaning {
+  font-family: 'Noto Serif', serif;
+  font-size: 1.5rem;
+  color: #2d426d;
+  line-height: 1.3;
+  margin-bottom: 2px;
+  text-align: right;
+}
 .tian-zi-ge-large {
   width: 220px;
   height: 220px;
@@ -47,13 +58,22 @@
   page-break-inside: avoid;
 }
 
-.pdf-header-row { display: flex; border-bottom: 1.5px solid #2d426d; }
-.pdf-char-columns { display: flex; border-right: 1.5px solid #2d426d; }
-.pdf-char-col { width: 56px; display: flex; flex-direction: column; border-right: 1px solid #2d426d; }
-.pdf-char-col:last-child { border-right: none; }
+.pdf-header-row {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  border-bottom: 1.5px solid #2d426d;
+}
+
+.pdf-char-col {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2d426d;
+}
 
 .pdf-pinyin-cell {
   height: 24px;
+  flex-shrink: 0;
   border-bottom: 1px solid #2d426d;
   display: flex;
   align-items: center;
@@ -65,14 +85,15 @@
 }
 
 .pdf-big-char-cell {
-  height: 64px;
+  flex: 1;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .pdf-strokes-area {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-around;

@@ -102,10 +102,8 @@ export async function exportWorksheetToPDF(wordList, rowsPerWord = 2) {
         const cData = charDataList[charIdx];
         let innerSvg = "";
 
-        // Dòng đầu tiên: các ô đầu in chữ màu xanh navy mẫu chuẩn, tiếp theo in chữ mờ xám để đồ theo, các ô còn lại để trống
-        if (r === 0 && col < chars.length * 2) {
-          innerSvg = cData ? createFullCharSVG(cData.strokes, "#2d426d", 36) : "";
-        } else if (r === 0 && col < chars.length * 3) {
+        // Dòng đầu tiên: chỉ lấy 3 từ in mờ để học viên đồ theo nét, không in đậm, các ô còn lại để trống
+        if (r === 0 && col < chars.length * 3) {
           innerSvg = cData ? createFullCharSVG(cData.strokes, "#cbd5e1", 36) : "";
         }
 
@@ -114,11 +112,15 @@ export async function exportWorksheetToPDF(wordList, rowsPerWord = 2) {
       practiceRowsHtml += `<div class="pdf-grid-row">${cellsHtml}</div>`;
     }
 
+    const strokeSpan = Math.max(1, 12 - chars.length);
+    const meaningHtml = `<div class="pdf-meaning" style="text-align: right; font-size: 1.5em; color: #2d426d; margin-bottom: 4px;">${item.meaning}</div>`;
     const blockHtml = `
       <div class="pdf-word-block">
         <div class="pdf-header-row">
-          <div class="pdf-char-columns">${leftColsHtml}</div>
-          <div class="pdf-strokes-area">${strokeLinesHtml}</div>
+          ${leftColsHtml}
+          <div class="pdf-strokes-area" style="grid-column: span ${strokeSpan};">
+            ${meaningHtml}${strokeLinesHtml}
+          </div>
         </div>
         ${practiceRowsHtml}
       </div>

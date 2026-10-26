@@ -40,27 +40,8 @@
         <span class="text-2xl font-black text-[#1e293b] tracking-tight">Hanzii</span>
       </div>
 
-      <!-- Menu Tabs -->
+      <!-- Right controls: Cấu hình dòng PDF + Xuất PDF -->
       <div class="flex items-center gap-2">
-        <div class="bg-[#e3ecf6] text-[#2d426d] font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-1.5 shadow-2xs">
-          <span>🏠</span>
-          <span>Trang chủ</span>
-        </div>
-        <div class="hidden sm:flex items-center gap-3 text-slate-500 text-sm ml-2">
-          <span title="Dịch văn bản" class="cursor-pointer hover:text-[#2d426d] transition p-1">🔤</span>
-          <span title="Sổ tay từ vựng" class="cursor-pointer hover:text-[#2d426d] transition p-1">📋</span>
-          <span title="Luyện viết" class="cursor-pointer text-[#2d426d] font-bold p-1">✍️</span>
-          <span title="Cộng đồng" class="cursor-pointer hover:text-[#2d426d] transition p-1">💬</span>
-          <span title="VIP" class="cursor-pointer text-amber-500 p-1">👑</span>
-        </div>
-      </div>
-
-      <!-- Right controls: Quốc kỳ + Settings + Xuất PDF (nút xanh navy như nút Đăng nhập) -->
-      <div class="flex items-center gap-2">
-        <div class="hidden md:flex items-center gap-1 bg-[#f4f5f9] px-2.5 py-1.5 rounded-full border border-slate-200 text-xs text-slate-600">
-          <span class="text-base leading-none">🇻🇳</span>
-          <span class="text-xs text-slate-400">⚙️</span>
-        </div>
         <div class="flex items-center gap-1 text-xs text-slate-600 bg-[#f4f5f9] px-3 py-1.5 rounded-full border border-slate-200">
           <span>PDF:</span>
           <select id="pdf-rows" class="bg-transparent text-[#2d426d] font-bold cursor-pointer outline-none" title="Số dòng tập viết mỗi từ">
@@ -198,10 +179,10 @@
             <h3 class="font-bold text-[#1e293b] flex items-center gap-1.5">
               <span>🎨 Luyện viết tự do</span>
             </h3>
-            <p class="text-xs text-slate-500">Dùng Apple Pencil, ngón tay hoặc chuột tự viết hoặc đồ theo nét mờ vào 4 ô chữ Điền (田字格) bên dưới.</p>
+            <p class="text-xs text-slate-500">Dùng Apple Pencil, ngón tay hoặc chuột tự viết hoặc đồ theo nét mờ vào 8 ô chữ Điền (田字格) bên dưới.</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <!-- Nút Ẩn / Hiện nét mờ cho 4 ô luyện viết -->
+            <!-- Nút Ẩn / Hiện nét mờ cho 8 ô luyện viết -->
             <button id="btn-toggle-freehand-outline" type="button" class="px-3.5 py-1.5 rounded-full border text-xs font-semibold transition flex items-center gap-1.5 bg-[#e3ecf6] text-[#2d426d] border-[#c4dbf3]">
               👁️ Nét mờ: Bật
             </button>
@@ -220,6 +201,22 @@
           </div>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center">
+          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
+            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
+            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
+          </div>
+          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
+            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
+            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
+          </div>
+          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
+            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
+            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
+          </div>
+          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
+            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
+            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
+          </div>
           <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
             <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
             <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>

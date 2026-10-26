@@ -157,7 +157,7 @@ async function loadCharacterIntoWriter(char) {
   }
 }
 
-// Cập nhật lớp nét mờ cho 4 ô luyện viết tự do
+// Cập nhật lớp nét mờ cho 8 ô luyện viết tự do
 function updateFreehandOutlines(char, charData) {
   const btn = $('btn-toggle-freehand-outline');
   if (btn) {
@@ -193,7 +193,7 @@ function updateFreehandOutlines(char, charData) {
   });
 }
 
-// ---------- 4 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint) ----------
+// ---------- 8 ô viết tự do (Có bút vẽ & Gôm tẩy như Paint) ----------
 let currentFreehandTool = 'pen'; // 'pen' | 'eraser'
 
 function setFreehandTool(tool) {
