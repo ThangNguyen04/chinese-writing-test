@@ -179,7 +179,7 @@
             <h3 class="font-bold text-[#1e293b] flex items-center gap-1.5">
               <span>🎨 Luyện viết tự do</span>
             </h3>
-            <p class="text-xs text-slate-500">Dùng Apple Pencil, ngón tay hoặc chuột tự viết hoặc đồ theo nét mờ vào 8 ô chữ Điền (田字格) bên dưới.</p>
+            <p id="freehand-desc" class="text-xs text-slate-500">Dùng Apple Pencil, ngón tay hoặc chuột tự viết hoặc đồ theo nét mờ vào các ô chữ Điền (田字格) bên dưới.</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <div class="inline-flex items-center gap-1.5 bg-[#f4f5f9] p-1.5 rounded-full border border-slate-200">
@@ -206,46 +206,13 @@
                 👁️
               </button>
               <!-- Xóa hết -->
-              <button id="btn-clear-canvas" type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-100 transition active:scale-95 text-base" title="Xóa hết 8 ô">
+              <button id="btn-clear-canvas" type="button" class="w-9 h-9 rounded-full flex items-center justify-center text-rose-500 hover:bg-rose-100 transition active:scale-95 text-base" title="Xóa hết">
                 🗑️
               </button>
             </div>
           </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center">
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-          <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
-            <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
-            <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
-          </div>
-        </div>
+        <div id="freehand-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 justify-items-center"></div>
       </div>
     </section>
   </main>

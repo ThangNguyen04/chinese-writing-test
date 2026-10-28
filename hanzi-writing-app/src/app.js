@@ -271,6 +271,40 @@ function setFreehandTool(tool) {
   });
 }
 
+// Render số lượng hàng của lưới luyện viết tự do dựa trên tùy chọn số dòng của PDF (mỗi hàng 4 ô)
+function renderFreehandGrid() {
+  const rowsEl = $('pdf-rows');
+  const rows = parseInt(rowsEl?.value, 10) || 2;
+  const count = rows * 4;
+  const grid = $('freehand-grid');
+  if (!grid) return;
+
+  grid.innerHTML = Array.from({ length: count }, () => `
+    <div class="tian-zi-ge-canvas rounded-2xl shadow-xs relative overflow-hidden flex items-center justify-center">
+      <div class="freehand-outline absolute inset-0 flex items-center justify-center pointer-events-none select-none transition-opacity duration-150"></div>
+      <canvas class="freehand-canvas relative z-10" width="140" height="140"></canvas>
+    </div>
+  `).join('');
+
+  const desc = $('freehand-desc');
+  if (desc) {
+    desc.textContent = `Dùng Apple Pencil, ngón tay hoặc chuột tự viết hoặc đồ theo nét mờ vào ${rows} hàng (${count} ô chữ Điền) bên dưới.`;
+  }
+
+  const clearBtn = $('btn-clear-canvas');
+  if (clearBtn) clearBtn.title = `Xóa hết ${count} ô`;
+
+  initFreehandCanvases();
+
+  const char = Array.from(words[currentWordIndex]?.chars || '')[currentCharIndex] || '';
+  updateFreehandOutlines(char, currentCharData);
+  setFreehandTool(currentFreehandTool);
+
+  freehandUndoStack = [];
+  freehandRedoStack = [];
+  updateFreehandUndoRedoBtns();
+}
+
 function initFreehandCanvases() {
   const canvases = Array.from(document.querySelectorAll('.freehand-canvas'));
   canvases.forEach((canvas, canvasIdx) => {
@@ -513,7 +547,10 @@ function bindEvents() {
 
   const rowsEl = $('pdf-rows');
   rowsEl.value = localStorage.getItem('pdf_rows') || '2';
-  rowsEl.addEventListener('change', () => localStorage.setItem('pdf_rows', rowsEl.value));
+  rowsEl.addEventListener('change', () => {
+    localStorage.setItem('pdf_rows', rowsEl.value);
+    renderFreehandGrid();
+  });
 
   $('btn-export-pdf').addEventListener('click', async () => {
     const list = words.filter((_, i) => selected.has(i));
@@ -533,7 +570,9 @@ function bindEvents() {
   });
 }
 
+const rowsEl = $('pdf-rows');
+if (rowsEl) rowsEl.value = localStorage.getItem('pdf_rows') || '2';
 renderWordList();
+renderFreehandGrid();
 selectWord(0);
-initFreehandCanvases();
 bindEvents();
