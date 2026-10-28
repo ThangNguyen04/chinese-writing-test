@@ -33,19 +33,21 @@ function renderWordList() {
     const allLearned = Array.from(item.chars).every((c) => learnedChars.has(c));
     const div = document.createElement('div');
     div.className = `p-3.5 rounded-2xl border cursor-pointer transition flex items-center gap-2.5 ${
-      active ? 'border-[#455d95] bg-[#edf3fa] shadow-2xs' : 'border-slate-200/80 hover:bg-slate-50'
+      active
+        ? 'border-[#455d95] dark:border-sky-500 bg-[#edf3fa] dark:bg-slate-800/90 shadow-2xs'
+        : 'border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-50 dark:hover:bg-slate-800/50'
     }`;
     div.innerHTML = `
-      <input type="checkbox" class="word-cb w-4 h-4 accent-[#2d426d] flex-shrink-0 cursor-pointer" ${selected.has(idx) ? 'checked' : ''} title="Chọn để xuất PDF" />
+      <input type="checkbox" class="word-cb w-4 h-4 accent-[#2d426d] dark:accent-sky-500 flex-shrink-0 cursor-pointer" ${selected.has(idx) ? 'checked' : ''} title="Chọn để xuất PDF" />
       <div class="flex-1 min-w-0 word-nav">
         <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xl font-bold font-serif text-slate-800">${esc(item.chars)}</span>
-          <span class="text-xs font-bold text-[#2d426d]">${esc(item.pinyin)}</span>
-          ${allLearned ? '<span class="text-[11px] bg-[#e3ecf6] text-[#2d426d] font-semibold px-2 py-0.5 rounded-full">✓ Đã thuộc</span>' : ''}
+          <span class="text-xl font-bold font-serif text-slate-800 dark:text-slate-100">${esc(item.chars)}</span>
+          <span class="text-xs font-bold text-[#2d426d] dark:text-sky-400">${esc(item.pinyin)}</span>
+          ${allLearned ? '<span class="text-[11px] bg-[#e3ecf6] dark:bg-slate-700 text-[#2d426d] dark:text-sky-300 font-semibold px-2 py-0.5 rounded-full">✓ Đã thuộc</span>' : ''}
         </div>
-        <p class="text-xs text-slate-500 mt-0.5 truncate" title="${esc(item.meaning)}">${esc(item.meaning)}</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate" title="${esc(item.meaning)}">${esc(item.meaning)}</p>
       </div>
-      <button class="btn-del text-slate-300 hover:text-rose-500 px-2 py-1 text-lg" title="Xóa từ">&times;</button>
+      <button class="btn-del text-slate-300 dark:text-slate-600 hover:text-rose-500 px-2 py-1 text-lg" title="Xóa từ">&times;</button>
     `;
 
     div.querySelector('.word-cb').addEventListener('change', (e) => {
@@ -108,8 +110,8 @@ function renderCharSelector() {
     const btn = document.createElement('button');
     btn.className = `w-10 h-10 rounded-2xl font-serif text-lg font-bold border transition ${
       idx === currentCharIndex
-        ? 'bg-[#2d426d] text-white border-[#2d426d] shadow-xs'
-        : 'bg-white text-slate-700 border-slate-200 hover:border-[#a0c1e1]'
+        ? 'bg-[#2d426d] dark:bg-sky-600 text-white border-[#2d426d] dark:border-sky-600 shadow-xs'
+        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-[#a0c1e1] dark:hover:border-slate-500'
     }`;
     btn.textContent = ch;
     btn.addEventListener('click', () => {
@@ -152,7 +154,7 @@ async function loadCharacterIntoWriter(char) {
   if (data && data.strokes) {
     badgeEl.textContent = `${data.strokes.length}画 (Nét)`;
     previewEl.innerHTML = data.strokes
-      .map((_, i) => `<div class="p-1 bg-white border border-slate-200 rounded-xl shadow-2xs">${createProgressiveStrokeSVG(data.strokes, i, 36)}</div>`)
+      .map((_, i) => `<div class="p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xs">${createProgressiveStrokeSVG(data.strokes, i, 36)}</div>`)
       .join('');
   } else {
     badgeEl.textContent = '?画';
@@ -165,10 +167,10 @@ function updateFreehandOutlines(char, charData) {
   const btn = $('btn-toggle-freehand-outline');
   if (btn) {
     if (showFreehandOutline) {
-      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#e3ecf6] text-[#2d426d] hover:bg-[#d6e4f3] transition active:scale-95 text-base';
+      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#e3ecf6] dark:bg-slate-700 text-[#2d426d] dark:text-sky-300 hover:bg-[#d6e4f3] dark:hover:bg-slate-600 transition active:scale-95 text-base';
       btn.title = 'Nét mờ: Đang Bật (Bấm để Tắt)';
     } else {
-      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 text-slate-400 hover:bg-slate-200/60 transition active:scale-95 text-base';
+      btn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition active:scale-95 text-base';
       btn.title = 'Nét mờ: Đang Tắt (Bấm để Bật)';
     }
   }
@@ -257,11 +259,11 @@ function setFreehandTool(tool) {
 
   if (penBtn && eraserBtn) {
     if (isPen) {
-      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] text-white shadow-xs transition active:scale-95 text-base';
-      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition active:scale-95 text-base';
+      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] dark:bg-sky-600 text-white shadow-xs transition active:scale-95 text-base';
+      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700 transition active:scale-95 text-base';
     } else {
-      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] text-white shadow-xs transition active:scale-95 text-base';
-      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition active:scale-95 text-base';
+      eraserBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center bg-[#2d426d] dark:bg-sky-600 text-white shadow-xs transition active:scale-95 text-base';
+      penBtn.className = 'w-9 h-9 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700 transition active:scale-95 text-base';
     }
   }
 
@@ -543,6 +545,26 @@ function bindEvents() {
     saveWords();
     selectWord(words.length - 1);
     ['manual-hanzi', 'manual-pinyin', 'manual-meaning'].forEach((id) => { $(id).value = ''; });
+  });
+
+  // Chuyển đổi Light / Dark mode
+  const themeToggleBtn = $('theme-toggle');
+  const themeIcon = $('theme-icon');
+
+  function updateThemeUI() {
+    const isDark = document.documentElement.classList.contains('dark');
+    if (themeIcon) themeIcon.textContent = isDark ? '☀️' : '🌙';
+    if (themeToggleBtn) {
+      themeToggleBtn.title = isDark ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối';
+    }
+  }
+
+  updateThemeUI();
+
+  themeToggleBtn?.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('hanzi_theme', isDark ? 'dark' : 'light');
+    updateThemeUI();
   });
 
   const rowsEl = $('pdf-rows');

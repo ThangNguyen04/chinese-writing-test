@@ -34,6 +34,17 @@
     linear-gradient(-45deg, transparent 49.2%, #dce8f7 49.2%, #dce8f7 50.8%, transparent 50.8%);
 }
 
+/* Tian-zi-ge viền sáng nổi bật trong Dark mode */
+.dark .tian-zi-ge-large {
+  border-color: #38bdf8;
+  box-shadow: 0 4px 14px -1px rgba(0, 0, 0, 0.35);
+}
+
+.dark .tian-zi-ge-canvas {
+  border-color: #38bdf8;
+  box-shadow: 0 4px 14px -1px rgba(0, 0, 0, 0.35);
+}
+
 .freehand-canvas {
   touch-action: none;
   cursor: crosshair;
